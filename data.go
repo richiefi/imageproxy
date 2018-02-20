@@ -315,7 +315,7 @@ func (r Request) String() string {
 // 	http://localhost/100x200,r90/http://example.com/image.jpg?foo=bar
 // 	http://localhost//http://example.com/image.jpg
 // 	http://localhost/http://example.com/image.jpg
-func NewRequest(r *http.Request, baseURL *url.URL) (*Request, error) {
+func NewRequest(r *http.Request, baseURL *url.URL, forbidAbsoluteURLs bool) (*Request, error) {
 	var err error
 	req := &Request{Original: r}
 
@@ -335,6 +335,11 @@ func NewRequest(r *http.Request, baseURL *url.URL) (*Request, error) {
 		}
 
 		req.Options = ParseOptions(parts[0])
+	}
+
+	// Check here if we need to refuse the request to not to be an open proxy
+	if req.URL.IsAbs() && forbidAbsoluteURLs {
+		return nil, URLError{"Client-specified absolute URLs are forbidden by configuration", r.URL}
 	}
 
 	if baseURL != nil {
