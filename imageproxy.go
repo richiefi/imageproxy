@@ -36,6 +36,9 @@ type Proxy struct {
 	// hosts are allowed.
 	Referrers []string
 
+	// URLPrefix is a prefix of the URL that will be stripped
+	URLPrefix string
+
 	// DefaultBaseURL is the URL that relative remote URLs are resolved in
 	// reference to.  If nil, all remote URLs specified in requests must be
 	// absolute.
@@ -93,13 +96,18 @@ func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
 
 // ServeHTTP handles incoming requests.
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/favicon.ico" {
-		return // ignore favicon requests
-	}
-
+	// Respond to health checks
 	if r.URL.Path == "/" || r.URL.Path == "/health-check" {
 		fmt.Fprint(w, "OK")
 		return
+	}
+
+	// Check url prefix and remove it if necessary
+	if strings.Index(r.URL.Path, p.URLPrefix) == 0 {
+		pathParts := strings.SplitAfterN(r.URL.Path, p.URLPrefix, 2)
+		if len(pathParts) >= 2 {
+			r.URL.Path = pathParts[1]
+		}
 	}
 
 	var h http.Handler = http.HandlerFunc(p.serveImage)

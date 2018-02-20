@@ -31,6 +31,7 @@ const defaultMemorySize = 100
 var addr = flag.String("addr", "localhost:8080", "TCP address to listen on")
 var whitelist = flag.String("whitelist", "", "comma separated list of allowed remote hosts")
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
+var urlPrefix = flag.String("urlPrefix", "", "url prefix for this service, will be removed before processing")
 var baseURL = flag.String("baseURL", "", "default base URL for relative remote URLs")
 var cache tieredCache
 var signatureKey = flag.String("signatureKey", "", "HMAC key used in calculating request signatures")
@@ -47,6 +48,9 @@ func main() {
 	flag.Parse()
 
 	p := imageproxy.NewProxy(nil, cache.Cache)
+	if *urlPrefix != "" {
+		p.URLPrefix = *urlPrefix
+	}
 	if *whitelist != "" {
 		p.Whitelist = strings.Split(*whitelist, ",")
 	}
