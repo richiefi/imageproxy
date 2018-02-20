@@ -1,5 +1,6 @@
 # imageproxy
 
+Forked from [github.com/willnorris/imageproxy](https://github.com/willnorris/imageproxy/).
 
 imageproxy is a caching image proxy server written in go.  It features:
 
