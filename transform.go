@@ -85,7 +85,8 @@ func Transform(img []byte, opt Options) ([]byte, error) {
 		}
 	case "png":
 		m = transformImage(m, opt)
-		err = png.Encode(buf, m)
+		enc := png.Encoder{CompressionLevel: png.BestCompression}
+		err = enc.Encode(buf, m)
 		if err != nil {
 			return nil, err
 		}
