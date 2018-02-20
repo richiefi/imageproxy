@@ -1,10 +1,9 @@
 FROM golang:1.9 as build
-MAINTAINER Will Norris <will@willnorris.com>
 
-WORKDIR /go/src/willnorris.com/go/imageproxy
+WORKDIR /go/src/github.com/richiefi/imageproxy
 ADD . .
 
-WORKDIR /go/src/willnorris.com/go/imageproxy/cmd/imageproxy
+WORKDIR /go/src/github.com/richiefi/imageproxy/cmd/imageproxy
 RUN go-wrapper download
 RUN CGO_ENABLED=0 GOOS=linux go-wrapper install
 
