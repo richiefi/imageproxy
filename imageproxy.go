@@ -44,11 +44,6 @@ type Proxy struct {
 	// absolute.
 	DefaultBaseURL *url.URL
 
-	// ForbidAbsoluteURLs will disable resolving absolute URLs. If
-	// ForbidAbsoluteURLs is set, all URLs must be relative and they are
-	// resolved with DefaultBaseURL as base.
-	ForbidAbsoluteURLs bool
-
 	// SignatureKey is the HMAC key used to verify signed requests.
 	SignatureKey []byte
 
@@ -124,7 +119,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // serveImage handles incoming requests for proxied images.
 func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
-	req, err := NewRequest(r, p.DefaultBaseURL, p.ForbidAbsoluteURLs)
+	req, err := NewRequest(r, p.DefaultBaseURL)
 	if err != nil {
 		msg := fmt.Sprintf("invalid request URL: %v", err)
 		log.Print(msg)

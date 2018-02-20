@@ -33,7 +33,6 @@ var whitelist = flag.String("whitelist", "", "comma separated list of allowed re
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
 var urlPrefix = flag.String("urlPrefix", "", "url prefix for this service, will be removed before processing")
 var baseURL = flag.String("baseURL", "", "default base URL for relative remote URLs")
-var forbidAbsoluteURLsStr = flag.String("forbidAbsoluteURLs", "", "forbid querying absolute URLs")
 var cache tieredCache
 var signatureKey = flag.String("signatureKey", "", "HMAC key used in calculating request signatures")
 var scaleUp = flag.Bool("scaleUp", false, "allow images to scale beyond their original dimensions")
@@ -76,12 +75,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("error parsing baseURL: %v", err)
 		}
-	}
-
-	// Only set absolute urls as forbidden if it has surely been requested
-	forbidAbsoluteURLs, err := strconv.ParseBool(*forbidAbsoluteURLsStr)
-	if err == nil && forbidAbsoluteURLs {
-		p.ForbidAbsoluteURLs = true
 	}
 
 	p.Timeout = *timeout
