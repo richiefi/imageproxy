@@ -3,18 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "appengine",
-			"revision": ""
-		},
-		{
-			"path": "appengine_internal",
-			"revision": ""
-		},
-		{
-			"path": "appengine_internal/base",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "AH7jcN7pvaPDU6UjHdpT081DDGk=",
 			"path": "cloud.google.com/go/compute/metadata",
 			"revision": "2de512d2700d45e7db3bc7b5decfa0a6713a252c",
