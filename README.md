@@ -82,7 +82,7 @@ The smart crop feature can best be seen by comparing the following images, with 
 
 Install the package using:
 
-    go get willnorris.com/go/imageproxy/cmd/imageproxy
+    go get github.com/richiefi/imageproxy/cmd/imageproxy
 
 Once installed, ensure `$GOPATH/bin` is in your `$PATH`, then run the proxy
 using:
@@ -247,54 +247,4 @@ needs... it's a very simple command.
 ## Deploying ##
 
 In most cases, you can follow the normal procedure for building a deploying any
-go application.  For example, I build it directly on my production debian server
-using:
-
- - `go build willnorris.com/go/imageproxy/cmd/imageproxy`
- - copy resulting binary to `/usr/local/bin`
- - copy [`etc/imageproxy.service`](etc/imageproxy.service) to
-   `/lib/systemd/system` and enable using `systemctl`.
-
-Instructions have been contributed below for running on other platforms, but I
-don't have much experience with them personally.
-
-### Heroku ###
-
-It's easy to vendorize the dependencies with `Godep` and deploy to Heroku. Take
-a look at [this GitHub repo](https://github.com/oreillymedia/prototype-imageproxy)
-
-### Docker ###
-
-A docker image is available at [`willnorris/imageproxy`](https://registry.hub.docker.com/u/willnorris/imageproxy/dockerfile/).
-
-You can run it by
-```
-docker run -p 8080:8080 willnorris/imageproxy -addr 0.0.0.0:8080
-```
-
-Or in your Dockerfile:
-
-```
-ENTRYPOINT ["/go/bin/imageproxy", "-addr 0.0.0.0:8080"]
-```
-
-### nginx ###
-
-You can use follow config to prevent URL overwritting:
-
-```
-  location ~ ^/api/imageproxy/ {
-    # pattern match to capture the original URL to prevent URL
-    # canonicalization, which would strip double slashes
-    if ($request_uri ~ "/api/imageproxy/(.+)") {
-      set $path $1;
-      rewrite .* /$path break;
-    }
-    proxy_pass http://localhost:8080;
-  }
-```
-
-## License ##
-
-imageproxy is copyright Google, but is not an official Google product.  It is
-available under the [Apache 2.0 License](./LICENSE).
+go application.
