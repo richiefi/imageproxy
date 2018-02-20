@@ -14,7 +14,9 @@ WORKDIR /go/bin
 RUN apk add --update ca-certificates
 
 COPY --from=build /go/bin/imageproxy .
-CMD ["-addr", "0.0.0.0:8080"]
-ENTRYPOINT ["/go/bin/imageproxy"]
+COPY --from=build /go/src/github.com/richiefi/imageproxy/entrypoint.sh .
 
+ENV PORT 8080
 EXPOSE 8080
+
+ENTRYPOINT ["./entrypoint.sh"]
