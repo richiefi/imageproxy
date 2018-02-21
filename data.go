@@ -315,11 +315,20 @@ func (r Request) String() string {
 // 	http://localhost/100x200,r90/http://example.com/image.jpg?foo=bar
 // 	http://localhost//http://example.com/image.jpg
 // 	http://localhost/http://example.com/image.jpg
-func NewRequest(r *http.Request, baseURL *url.URL) (*Request, error) {
+func NewRequest(r *http.Request, baseURL *url.URL, urlPrefix string) (*Request, error) {
 	var err error
 	req := &Request{Original: r}
 
-	path := r.URL.EscapedPath()[1:] // strip leading slash
+	var path string
+
+	urlPrefixWithoutTail := strings.TrimRight(urlPrefix, "/")
+
+	if strings.HasPrefix(r.URL.EscapedPath(), urlPrefixWithoutTail) {
+		path = r.URL.EscapedPath()[1+len(urlPrefixWithoutTail):] // strip leading slash and the prefix
+	} else {
+		path = r.URL.EscapedPath()[1:] // strip leading slash
+	}
+
 	req.URL, err = parseURL(path)
 	if err != nil || !req.URL.IsAbs() {
 		// first segment should be options

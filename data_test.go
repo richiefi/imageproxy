@@ -162,31 +162,70 @@ func TestNewRequest(t *testing.T) {
 			"http://localhost/http://example.com/%2C",
 			"http://example.com/%2C", emptyOptions, false,
 		},
+
+		// valid URLs with the prefix
+		{
+			"http://localhost/prefix/http://example.com/foo",
+			"http://example.com/foo", emptyOptions, false,
+		},
+		{
+			"http://localhost/prefix//http://example.com/foo",
+			"http://example.com/foo", emptyOptions, false,
+		},
+		{
+			"http://localhost/prefix//https://example.com/foo",
+			"https://example.com/foo", emptyOptions, false,
+		},
+		{
+			"http://localhost/prefix/1x2/http://example.com/foo",
+			"http://example.com/foo", Options{Width: 1, Height: 2}, false,
+		},
+		{
+			"http://localhost/prefix//http://example.com/foo?bar",
+			"http://example.com/foo?bar", emptyOptions, false,
+		},
+		{
+			"http://localhost/prefix/http:/example.com/foo",
+			"http://example.com/foo", emptyOptions, false,
+		},
+		{
+			"http://localhost/prefix/http:///example.com/foo",
+			"http://example.com/foo", emptyOptions, false,
+		},
+		{ // escaped path
+			"http://localhost/prefix/http://example.com/%2C",
+			"http://example.com/%2C", emptyOptions, false,
+		},
 	}
 
-	for _, tt := range tests {
-		req, err := http.NewRequest("GET", tt.URL, nil)
-		if err != nil {
-			t.Errorf("http.NewRequest(%q) returned error: %v", tt.URL, err)
-			continue
-		}
+	// Try with both versions of the same prefix. The results should be same.
+	prefixes := []string{"/prefix/", "/prefix"}
 
-		r, err := NewRequest(req, nil)
-		if tt.ExpectError {
-			if err == nil {
-				t.Errorf("NewRequest(%v) did not return expected error", req)
+	for _, prefix := range prefixes {
+		for _, tt := range tests {
+			req, err := http.NewRequest("GET", tt.URL, nil)
+			if err != nil {
+				t.Errorf("http.NewRequest(%q) returned error: %v", tt.URL, err)
+				continue
 			}
-			continue
-		} else if err != nil {
-			t.Errorf("NewRequest(%v) return unexpected error: %v", req, err)
-			continue
-		}
 
-		if got, want := r.URL.String(), tt.RemoteURL; got != want {
-			t.Errorf("NewRequest(%q) request URL = %v, want %v", tt.URL, got, want)
-		}
-		if got, want := r.Options, tt.Options; got != want {
-			t.Errorf("NewRequest(%q) request options = %v, want %v", tt.URL, got, want)
+			r, err := NewRequest(req, nil, prefix)
+			if tt.ExpectError {
+				if err == nil {
+					t.Errorf("NewRequest(%v) did not return expected error", req)
+				}
+				continue
+			} else if err != nil {
+				t.Errorf("NewRequest(%v) return unexpected error: %v", req, err)
+				continue
+			}
+
+			if got, want := r.URL.String(), tt.RemoteURL; got != want {
+				t.Errorf("NewRequest(%q) request URL = %v, want %v", tt.URL, got, want)
+			}
+			if got, want := r.Options, tt.Options; got != want {
+				t.Errorf("NewRequest(%q) request options = %v, want %v", tt.URL, got, want)
+			}
 		}
 	}
 }

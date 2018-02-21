@@ -111,7 +111,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // serveImage handles incoming requests for proxied images.
 func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
-	req, err := NewRequest(r, p.DefaultBaseURL)
+	req, err := NewRequest(r, p.DefaultBaseURL, p.URLPrefix)
 	if err != nil {
 		msg := fmt.Sprintf("invalid request URL: %v", err)
 		log.Print(msg)
