@@ -97,9 +97,27 @@ func TestTransform(t *testing.T) {
 		encode      func(io.Writer, image.Image)
 		exactOutput bool // whether input and output should match exactly
 	}{
-		{"gif", func(w io.Writer, m image.Image) { gif.Encode(w, m, nil) }, true},
-		{"jpeg", func(w io.Writer, m image.Image) { jpeg.Encode(w, m, nil) }, false},
-		{"png", func(w io.Writer, m image.Image) { png.Encode(w, m) }, true},
+		{
+			"gif",
+			func(w io.Writer, m image.Image) {
+				gif.Encode(w, m, nil)
+			},
+			true,
+		},
+		{
+			"jpeg", func(w io.Writer, m image.Image) {
+				jpeg.Encode(w, m, nil)
+			},
+			false,
+		},
+		{
+			"png",
+			func(w io.Writer, m image.Image) {
+				enc := png.Encoder{CompressionLevel: png.BestCompression}
+				enc.Encode(w, m)
+			},
+			true,
+		},
 	}
 
 	for _, tt := range tests {
