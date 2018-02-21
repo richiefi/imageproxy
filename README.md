@@ -259,3 +259,11 @@ export LD_LIBRARY_PATH="/opt/mozjpeg/lib64/"
 go install github.com/richiefi/imageproxy/cmd/imageproxy
 imageproxy
 ```
+
+Homebrew on macOS provides `libjpeg-turbo`. It can be used in the following way:
+```
+export CGO_CFLAGS="-I/usr/local/opt/jpeg-turbo/include"
+export CGO_LDFLAGS="-L/usr/local/opt/jpeg-turbo/lib"
+go install github.com/richiefi/imageproxy/cmd/imageproxy
+imageproxy
+```
