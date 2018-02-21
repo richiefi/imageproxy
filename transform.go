@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	_ "image/gif" // register gif format
-	"image/jpeg"
+	_ "image/gif"  // register gif format
+	_ "image/jpeg" // register jpeg format
 	"image/png"
 	"io"
 	"log"
@@ -14,6 +14,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/muesli/smartcrop"
 	"github.com/rwcarlsen/goexif/exif"
+	"github.com/svkoskin/go-libjpeg/jpeg"
 	"golang.org/x/image/tiff"   // register tiff format
 	_ "golang.org/x/image/webp" // register webp format
 	"willnorris.com/go/gifresize"
@@ -79,7 +80,7 @@ func Transform(img []byte, opt Options) ([]byte, error) {
 		}
 
 		m = transformImage(m, opt)
-		err = jpeg.Encode(buf, m, &jpeg.Options{Quality: quality})
+		err = jpeg.Encode(buf, m, &jpeg.EncoderOptions{Quality: quality})
 		if err != nil {
 			return nil, err
 		}
@@ -251,7 +252,8 @@ func exifOrientation(r io.Reader) (opt Options) {
 }
 
 // transformImage modifies the image m based on the transformations specified
-// in opt.
+// in opt. The returned images are of type *image.NRGBA regardless the source,
+// since the imaging library works that way.
 func transformImage(m image.Image, opt Options) image.Image {
 	// Parse crop and resize parameters before applying any transforms.
 	// This is to ensure that any percentage-based values are based off the
