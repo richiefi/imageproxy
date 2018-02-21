@@ -3,15 +3,15 @@ FROM golang:1.9-alpine3.7 as build
 WORKDIR /go/src/github.com/richiefi/imageproxy
 ADD . .
 
-WORKDIR /go/src/github.com/richiefi/imageproxy/cmd/imageproxy
-RUN go-wrapper download
-RUN CGO_ENABLED=0 GOOS=linux go-wrapper install
+RUN apk add --update libjpeg-turbo-dev automake build-base libtool nasm
+RUN go install github.com/richiefi/imageproxy/cmd/imageproxy
 
 FROM alpine:3.7
 
 WORKDIR /go/bin
 
 RUN apk add --update ca-certificates
+RUN apk add libjpeg-turbo
 
 COPY --from=build /go/bin/imageproxy .
 COPY --from=build /go/src/github.com/richiefi/imageproxy/entrypoint.sh .
