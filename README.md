@@ -10,7 +10,6 @@ imageproxy is a caching image proxy server written in go.  It features:
    (including animated gifs)
  - caching in-memory, on disk, or with Amazon S3, Google Cloud Storage, Azure
    Storage, or Redis
- - easy deployment, since it's pure go
 
 Personally, I use it primarily to dynamically resize images hosted on my own
 site (read more in [this post][]).  But you can also enable request signing and
@@ -248,3 +247,15 @@ needs... it's a very simple command.
 
 In most cases, you can follow the normal procedure for building a deploying any
 go application.
+
+This version requires either `libjpeg-turbo` or `mozjpeg`. If `mozjpeg` has been
+installed with default settings using `make install` (to `/opt/mozjpeg/`),
+the following seems to work for building `imageproxy` and running on Ubuntu:
+
+```
+export CGO_CFLAGS="-I/opt/mozjpeg/include/"
+export CGO_LDFLAGS="-L/opt/mozjpeg/lib64/"
+export LD_LIBRARY_PATH="/opt/mozjpeg/lib64/"
+go install github.com/richiefi/imageproxy/cmd/imageproxy
+imageproxy
+```
