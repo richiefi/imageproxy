@@ -102,14 +102,6 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check url prefix and remove it if necessary
-	if strings.Index(r.URL.Path, p.URLPrefix) == 0 {
-		pathParts := strings.SplitAfterN(r.URL.Path, p.URLPrefix, 2)
-		if len(pathParts) >= 2 {
-			r.URL.Path = pathParts[1]
-		}
-	}
-
 	var h http.Handler = http.HandlerFunc(p.serveImage)
 	if p.Timeout > 0 {
 		h = tphttp.TimeoutHandler(h, p.Timeout, "Gateway timeout waiting for remote resource.")
