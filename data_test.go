@@ -2,6 +2,7 @@ package imageproxy
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -41,63 +42,60 @@ func TestOptions_String(t *testing.T) {
 	}
 }
 
-func TestParseOptions(t *testing.T) {
+func TestParseFormValues(t *testing.T) {
 	tests := []struct {
-		Input   string
+		InputQS string
 		Options Options
 	}{
 		{"", emptyOptions},
 		{"x", emptyOptions},
 		{"r", emptyOptions},
 		{"0", emptyOptions},
-		{",,,,", emptyOptions},
+		{"crop=,,,,", emptyOptions},
 
 		// size variations
-		{"1x", Options{Width: 1}},
-		{"x1", Options{Height: 1}},
-		{"1x2", Options{Width: 1, Height: 2}},
-		{"-1x-2", Options{Width: -1, Height: -2}},
-		{"0.1x0.2", Options{Width: 0.1, Height: 0.2}},
-		{"1", Options{Width: 1, Height: 1}},
-		{"0.1", Options{Width: 0.1, Height: 0.1}},
+		{"width=1", Options{Width: 1}},
+		{"height=1", Options{Height: 1}},
+		{"width=1&height=2", Options{Width: 1, Height: 2}},
+		{"width=-1&height=-2", Options{Width: -1, Height: -2}},
+		{"width=0.1&height=0.2", Options{Width: 0.1, Height: 0.2}},
+		{"size=1", Options{Width: 1, Height: 1}},
+		{"size=0.1", Options{Width: 0.1, Height: 0.1}},
 
 		// additional flags
-		{"fit", Options{Fit: true}},
-		{"r90", Options{Rotate: 90}},
-		{"fv", Options{FlipVertical: true}},
-		{"fh", Options{FlipHorizontal: true}},
-		{"jpeg", Options{Format: "jpeg"}},
-
-		// duplicate flags (last one wins)
-		{"1x2,3x4", Options{Width: 3, Height: 4}},
-		{"1x2,3", Options{Width: 3, Height: 3}},
-		{"1x2,0x3", Options{Width: 0, Height: 3}},
-		{"1x,x2", Options{Width: 1, Height: 2}},
-		{"r90,r270", Options{Rotate: 270}},
-		{"jpeg,png", Options{Format: "png"}},
+		{"mode=fit", Options{Fit: true}},
+		{"rotate=90", Options{Rotate: 90}},
+		{"flip=v", Options{FlipVertical: true}},
+		{"flip=h", Options{FlipHorizontal: true}},
+		{"format=jpeg", Options{Format: "jpeg"}},
 
 		// mix of valid and invalid flags
-		{"FOO,1,BAR,r90,BAZ", Options{Width: 1, Height: 1, Rotate: 90}},
+		{"FOO=BAR&size=1&BAR=foo&rotate=90&BAZ=DAS", Options{Width: 1, Height: 1, Rotate: 90}},
 
 		// flags, in different orders
-		{"q70,1x2,fit,r90,fv,fh,sc0ffee,png", Options{1, 2, true, 90, true, true, 70, "c0ffee", false, "png", 0, 0, 0, 0, false}},
-		{"r90,fh,sc0ffee,png,q90,1x2,fv,fit", Options{1, 2, true, 90, true, true, 90, "c0ffee", false, "png", 0, 0, 0, 0, false}},
+		{"quality=70&width=1&height=2&mode=fit&rotate=90&flip=v&flip=h&signature=c0ffee&format=png", Options{1, 2, true, 90, true, true, 70, "c0ffee", false, "png", 0, 0, 0, 0, false}},
+		{"rotate=90&flip=h&signature=c0ffee&format=png&quality=90&width=1&height=2&flip=v&mode=fit", Options{1, 2, true, 90, true, true, 90, "c0ffee", false, "png", 0, 0, 0, 0, false}},
 
 		// all flags, in different orders with crop
-		{"q70,cx100,cw300,1x2,fit,cy200,r90,fv,ch400,fh,sc0ffee,png", Options{1, 2, true, 90, true, true, 70, "c0ffee", false, "png", 100, 200, 300, 400, false}},
-		{"ch400,r90,cw300,fh,sc0ffee,png,cx100,q90,cy200,1x2,fv,fit", Options{1, 2, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 300, 400, false}},
+		{"quality=70&width=1&height=2&mode=fit&crop=100,200,300,400&rotate=90&flip=v&flip=h&signature=c0ffee&format=png", Options{1, 2, true, 90, true, true, 70, "c0ffee", false, "png", 100, 200, 300, 400, false}},
+		{"rotate=90&flip=h&signature=c0ffee&format=png&crop=100,200,300,400&quality=90&width=1&height=2&flip=v&mode=fit", Options{1, 2, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 300, 400, false}},
 
 		// all flags, in different orders with crop & different resizes
-		{"q70,cx100,cw300,x2,fit,cy200,r90,fv,ch400,fh,sc0ffee,png", Options{0, 2, true, 90, true, true, 70, "c0ffee", false, "png", 100, 200, 300, 400, false}},
-		{"ch400,r90,cw300,fh,sc0ffee,png,cx100,q90,cy200,1x,fv,fit", Options{1, 0, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 300, 400, false}},
-		{"ch400,r90,cw300,fh,sc0ffee,png,cx100,q90,cy200,cw,fv,fit", Options{0, 0, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 0, 400, false}},
-		{"ch400,r90,cw300,fh,sc0ffee,png,cx100,q90,cy200,cw,fv,fit,123x321", Options{123, 321, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 0, 400, false}},
-		{"123x321,ch400,r90,cw300,fh,sc0ffee,png,cx100,q90,cy200,cw,fv,fit", Options{123, 321, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 0, 400, false}},
+		{"quality=70&crop=100,200,300,400&height=2&mode=fit&rotate=90&flip=v&flip=h&signature=c0ffee&format=png", Options{0, 2, true, 90, true, true, 70, "c0ffee", false, "png", 100, 200, 300, 400, false}},
+		{"crop=100,200,300,400&rotate=90&flip=h&quality=90&signature=c0ffee&format=png&width=1&flip=v&mode=fit", Options{1, 0, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 300, 400, false}},
+		{"crop=100,200,300,400&rotate=90&flip=h&signature=c0ffee&flip=v&format=png&quality=90&mode=fit", Options{0, 0, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 300, 400, false}},
+		{"crop=100,200,0,400&rotate=90&quality=90&flip=h&signature=c0ffee&format=png&flip=v&mode=fit&width=123&height=321", Options{123, 321, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 0, 400, false}},
+		{"flip=v&width=123&height=321&crop=100,200,300,400&quality=90&rotate=90&flip=h&signature=c0ffee&format=png&mode=fit", Options{123, 321, true, 90, true, true, 90, "c0ffee", false, "png", 100, 200, 300, 400, false}},
 	}
 
 	for _, tt := range tests {
-		if got, want := ParseOptions(tt.Input), tt.Options; got != want {
-			t.Errorf("ParseOptions(%q) returned %#v, want %#v", tt.Input, got, want)
+		input, err := url.ParseQuery(tt.InputQS)
+		if err != nil {
+			panic(err)
+		}
+
+		if got, want := ParseFormValues(input), tt.Options; got != want {
+			t.Errorf("ParseFormValues(%q) returned %#v, want %#v", tt.InputQS, got, want)
 		}
 	}
 }
