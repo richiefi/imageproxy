@@ -286,6 +286,64 @@ func ParseOptions(str string) Options {
 	return options
 }
 
+func ParseForm(form url.Values) Options {
+	var options Options
+	for key, values := range form {
+		for _, value := range values {
+			switch key {
+			case "mode":
+				switch value {
+				case "fit":
+					options.Fit = true
+				case "smartcrop":
+					options.SmartCrop = true
+				}
+			case "flip":
+				switch value {
+				case "v":
+					options.FlipVertical = true
+				case "h":
+					options.FlipHorizontal = true
+				}
+			case "format":
+				switch value {
+				case optFormatJPEG:
+					options.Format = optFormatJPEG
+				case optFormatPNG:
+					options.Format = optFormatPNG
+				case optFormatTIFF:
+					options.Format = optFormatTIFF
+				}
+			case "rotate":
+				options.Rotate, _ = strconv.Atoi(value)
+			case "quality":
+				options.Quality, _ = strconv.Atoi(value)
+			case "signature":
+				options.Signature = value
+			case "crop":
+				cropValues := strings.Split(value, ",")
+				if len(cropValues) == 4 {
+					options.CropX, _ = strconv.ParseFloat(cropValues[0], 64)
+					options.CropY, _ = strconv.ParseFloat(cropValues[1], 64)
+					options.CropWidth, _ = strconv.ParseFloat(cropValues[2], 64)
+					options.CropHeight, _ = strconv.ParseFloat(cropValues[3], 64)
+				}
+			case "width":
+				options.Width, _ = strconv.ParseFloat(value, 64)
+			case "height":
+				options.Height, _ = strconv.ParseFloat(value, 64)
+			case "size":
+				size, err := strconv.ParseFloat(value, 64)
+				if err != nil {
+					options.Width = size
+					options.Height = size
+				}
+			}
+		}
+	}
+	return options
+}
+
 // Request is an imageproxy request which includes a remote URL of an image to
 // proxy, and an optional set of transformations to perform.
 type Request struct {
