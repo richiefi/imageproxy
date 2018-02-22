@@ -26,7 +26,7 @@ const defaultQuality = 95
 const maxExifSize = 1 << 20
 
 // resample filter used when resizing images
-var resampleFilter = imaging.Lanczos
+var resampleFilter = imaging.Box
 
 // Transform the provided image.  img should contain the raw bytes of an
 // encoded image in one of the supported formats (gif, jpeg, or png).  The
