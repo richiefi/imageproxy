@@ -8,7 +8,6 @@ import (
 	_ "image/jpeg" // register jpeg format
 	"image/png"
 	"io"
-	"log"
 	"math"
 
 	"github.com/disintegration/imaging"
@@ -157,12 +156,8 @@ func cropParams(m image.Image, opt Options) image.Rectangle {
 	if opt.SmartCrop {
 		w := evaluateFloat(opt.Width, imgW)
 		h := evaluateFloat(opt.Height, imgH)
-		log.Printf("smartcrop input: %dx%d", w, h)
 		r, err := smartcrop.SmartCrop(m, w, h)
-		if err != nil {
-			log.Printf("error with smartcrop: %v", err)
-		} else {
-			log.Printf("smartcrop rectangle: %v", r)
+		if err == nil {
 			return r
 		}
 	}

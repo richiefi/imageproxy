@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,6 +19,7 @@ import (
 	"github.com/gregjones/httpcache/diskcache"
 	rediscache "github.com/gregjones/httpcache/redis"
 	"github.com/peterbourgon/diskv"
+	"go.uber.org/zap"
 
 	"github.com/richiefi/imageproxy"
 	"github.com/richiefi/imageproxy/internal/gcscache"
@@ -44,10 +44,24 @@ func init() {
 	flag.Var(&cache, "cache", "location to cache images (see https://github.com/willnorris/imageproxy#cache)")
 }
 
+func buildLogger() *zap.SugaredLogger {
+	cfg := zap.NewProductionConfig()
+	if *verbose {
+		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	}
+	plainLogger, err := cfg.Build()
+	if err != nil {
+		panic(err)
+	}
+	return plainLogger.Sugar()
+}
+
 func main() {
 	flag.Parse()
 
-	p := imageproxy.NewProxy(nil, cache.Cache)
+	logger := buildLogger()
+
+	p := imageproxy.NewProxy(nil, cache.Cache, logger)
 	if *urlPrefix != "" {
 		p.URLPrefix = *urlPrefix
 	}
@@ -64,7 +78,10 @@ func main() {
 			var err error
 			key, err = ioutil.ReadFile(file)
 			if err != nil {
-				log.Fatalf("error reading signature file: %v", err)
+				logger.Fatalw("error reading signature file",
+					"signatureKey", signatureKey,
+					"error", err.Error(),
+				)
 			}
 		}
 		p.SignatureKey = key
@@ -73,21 +90,25 @@ func main() {
 		var err error
 		p.DefaultBaseURL, err = url.Parse(*baseURL)
 		if err != nil {
-			log.Fatalf("error parsing baseURL: %v", err)
+			logger.Fatalw("error parsing baseURL",
+				"baseURL", baseURL,
+				"error", err.Error(),
+			)
 		}
 	}
 
 	p.Timeout = *timeout
 	p.ScaleUp = *scaleUp
-	p.Verbose = *verbose
 
 	server := &http.Server{
 		Addr:    *addr,
 		Handler: p,
 	}
 
-	fmt.Printf("imageproxy listening on %s\n", server.Addr)
-	log.Fatal(server.ListenAndServe())
+	logger.Infow("imageproxy listening",
+		"server.Addr", server.Addr,
+	)
+	logger.Fatal(server.ListenAndServe())
 }
 
 // tieredCache allows specifying multiple caches via flags, which will create

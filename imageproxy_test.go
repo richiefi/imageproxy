@@ -13,7 +13,17 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"go.uber.org/zap"
 )
+
+func logger() *zap.SugaredLogger {
+	plainLogger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+	return plainLogger.Sugar()
+}
 
 func TestCopyHeader(t *testing.T) {
 	tests := []struct {
@@ -128,7 +138,7 @@ func TestAllowed(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		p := NewProxy(nil, nil)
+		p := NewProxy(nil, nil, logger())
 		p.Whitelist = tt.whitelist
 		p.SignatureKey = tt.key
 		p.Referrers = tt.referrers
@@ -313,6 +323,7 @@ func TestProxy_ServeHTTP(t *testing.T) {
 			Transport: testTransport{},
 		},
 		Whitelist: []string{"good.test"},
+		logger:    logger(),
 	}
 
 	tests := []struct {
@@ -344,6 +355,7 @@ func TestProxy_ServeHTTP_is304(t *testing.T) {
 		Client: &http.Client{
 			Transport: testTransport{},
 		},
+		logger: logger(),
 	}
 
 	req, _ := http.NewRequest("GET", "http://localhost/http://good.test/etag", nil)
@@ -364,6 +376,7 @@ func TestTransformingTransport(t *testing.T) {
 	tr := &TransformingTransport{
 		Transport:     testTransport{},
 		CachingClient: client,
+		logger:        logger(),
 	}
 	client.Transport = tr
 

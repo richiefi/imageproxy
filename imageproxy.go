@@ -11,19 +11,21 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gregjones/httpcache"
+	"go.uber.org/zap"
 
 	tphttp "github.com/richiefi/imageproxy/third_party/http"
 )
 
 // Proxy serves image requests.
 type Proxy struct {
+	logger *zap.SugaredLogger
+
 	Client *http.Client // client used to fetch remote URLs
 	Cache  Cache        // cache used to cache responses
 
@@ -54,15 +56,12 @@ type Proxy struct {
 	// If a call runs for longer than its time limit, a 504 Gateway Timeout
 	// response is returned.  A Timeout of zero means no timeout.
 	Timeout time.Duration
-
-	// If true, log additional debug messages
-	Verbose bool
 }
 
 // NewProxy constructs a new proxy.  The provided http RoundTripper will be
 // used to fetch remote URLs.  If nil is provided, http.DefaultTransport will
 // be used.
-func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
+func NewProxy(transport http.RoundTripper, cache Cache, logger *zap.SugaredLogger) *Proxy {
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
@@ -71,7 +70,8 @@ func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
 	}
 
 	proxy := &Proxy{
-		Cache: cache,
+		Cache:  cache,
+		logger: logger,
 	}
 
 	client := new(http.Client)
@@ -79,11 +79,7 @@ func NewProxy(transport http.RoundTripper, cache Cache) *Proxy {
 		Transport: &TransformingTransport{
 			Transport:     transport,
 			CachingClient: client,
-			log: func(format string, v ...interface{}) {
-				if proxy.Verbose {
-					log.Printf(format, v...)
-				}
-			},
+			logger:        logger,
 		},
 		Cache:               cache,
 		MarkCachedResponses: true,
@@ -113,8 +109,10 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	req, err := NewRequest(r, p.DefaultBaseURL, p.URLPrefix)
 	if err != nil {
-		msg := fmt.Sprintf("invalid request URL: %v", err)
-		log.Print(msg)
+		p.logger.Infow("invalid request URL",
+			"error", err.Error(),
+		)
+		msg := fmt.Sprintf("invalid request URL: %s", err.Error())
 		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
@@ -123,24 +121,31 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	req.Options.ScaleUp = p.ScaleUp
 
 	if err := p.allowed(req); err != nil {
-		log.Print(err)
+		p.logger.Infow("Generated request did not pass validation",
+			"error", err.Error(),
+			"req.URL", req.URL,
+		)
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
 	resp, err := p.Client.Get(req.String())
 	if err != nil {
-		msg := fmt.Sprintf("error fetching remote image: %v", err)
-		log.Print(msg)
+		p.logger.Infow("Error fetching a remote image",
+			"error", err.Error(),
+			"req.String()", req.String(),
+		)
+		msg := fmt.Sprintf("error fetching remote image: %s", err.Error())
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
 
 	cached := resp.Header.Get(httpcache.XFromCache)
-	if p.Verbose {
-		log.Printf("request: %v (served from cache: %v)", *req, cached == "1")
-	}
+	p.logger.Debugw("About to respond",
+		"req.String()", req.String(),
+		"from cache", cached == "1",
+	)
 
 	copyHeader(w.Header(), resp.Header, "Cache-Control", "Last-Modified", "Expires", "Etag", "Link")
 
@@ -231,7 +236,6 @@ func validSignature(key []byte, r *Request) bool {
 
 	got, err := base64.URLEncoding.DecodeString(sig)
 	if err != nil {
-		log.Printf("error base64 decoding signature %q", r.Options.Signature)
 		return false
 	}
 
@@ -282,16 +286,17 @@ type TransformingTransport struct {
 	// responses are properly cached.
 	CachingClient *http.Client
 
-	log func(format string, v ...interface{})
+	logger *zap.SugaredLogger
 }
 
 // RoundTrip implements the http.RoundTripper interface.
 func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.URL.Fragment == "" {
-		// normal requests pass through
-		if t.log != nil {
-			t.log("fetching remote URL: %v", req.URL)
-		}
+		// normal requests pass through, image transformations are signaled in Fragment at this point
+		t.logger.Debugw("Fetching remote URL",
+			"req.URL", req.URL,
+		)
+
 		return t.Transport.RoundTrip(req)
 	}
 
@@ -299,6 +304,10 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	u.Fragment = ""
 	resp, err := t.CachingClient.Get(u.String())
 	if err != nil {
+		t.logger.Warnw("CachingClient returned an error",
+			"u", u,
+			"error", err.Error(),
+		)
 		return nil, err
 	}
 
@@ -310,6 +319,10 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		t.logger.Warnw("Error reading a response",
+			"u", u,
+			"error", err.Error(),
+		)
 		return nil, err
 	}
 
@@ -317,7 +330,10 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 
 	img, err := Transform(b, opt)
 	if err != nil {
-		log.Printf("error transforming image: %v", err)
+		t.logger.Warnw("Error transforming image",
+			"error", err.Error(),
+			"opt", opt,
+		)
 		img = b
 	}
 
