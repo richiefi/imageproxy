@@ -291,6 +291,35 @@ func ParseFormValues(form url.Values) Options {
 	return options
 }
 
+func StripOurOptions(rawQuery string) (string, error) {
+	// Delete our options. This is useful when the request is pushed upstream.
+	values, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return "", err
+	}
+	newValues := make(url.Values, len(values))
+	for key := range values {
+		switch key {
+		// Do not copy our values
+		case "mode":
+		case "flip":
+		case "format":
+		case "rotate":
+		case "quality":
+		case "signature":
+		case "crop":
+		case "width":
+		case "height":
+		case "size":
+
+		// Do copy other values
+		default:
+			newValues[key] = values[key]
+		}
+	}
+	return newValues.Encode(), nil
+}
+
 // Request is an imageproxy request which includes a remote URL of an image to
 // proxy, and an optional set of transformations to perform.
 type Request struct {

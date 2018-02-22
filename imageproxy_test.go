@@ -293,6 +293,13 @@ type testTransport struct{}
 
 func (t testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var raw string
+	var err error
+
+	// The actual transport does this, too.
+	req.URL.RawQuery, err = StripOurOptions(req.URL.RawQuery)
+	if err != nil {
+		return nil, err
+	}
 
 	switch req.URL.Path {
 	case "/ok":
@@ -335,7 +342,7 @@ func TestProxy_ServeHTTP(t *testing.T) {
 		{"/http://good.test/error", http.StatusInternalServerError}, // HTTP protocol error
 		{"/http://good.test/nocontent", http.StatusNoContent},       // non-OK response
 
-		{"/100/http://good.test/ok", http.StatusOK},
+		{"/http://good.test/ok?size=100", http.StatusOK},
 	}
 
 	for _, tt := range tests {

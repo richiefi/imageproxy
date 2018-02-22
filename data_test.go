@@ -113,40 +113,37 @@ func TestNewRequest(t *testing.T) {
 	}{
 		// invalid URLs
 		{"http://localhost/", "", emptyOptions, true},
-		{"http://localhost/1/", "", emptyOptions, true},
-		{"http://localhost//example.com/foo", "", emptyOptions, true},
-		{"http://localhost//ftp://example.com/foo", "", emptyOptions, true},
+		{"http://localhost/?size=1", "", emptyOptions, true},
+		{"http://localhost/example.com/foo", "", emptyOptions, true},
+		{"http://localhost/ftp://example.com/foo", "", emptyOptions, true},
 
 		// invalid options.  These won't return errors, but will not fully parse the options
 		{
-			"http://localhost/s/http://example.com/",
-			"http://example.com/", emptyOptions, false,
+			"http://localhost/http://example.com/?s",
+			"http://example.com/?s", emptyOptions, false,
 		},
 		{
-			"http://localhost/1xs/http://example.com/",
-			"http://example.com/", Options{Width: 1}, false,
+			"http://localhost/http://example.com/?width=1&height=s",
+			"http://example.com/?width=1&height=s", Options{Width: 1}, false,
 		},
 
-		// valid URLs
+		// valid URLs. the recognized query parameters are dropped just before querying upstream, so they
+		// are present in RemoteURLs in this phase :(
+		{
+			"http://localhost/http://example.com/foo?baz=baz",
+			"http://example.com/foo?baz=baz", emptyOptions, false,
+		},
 		{
 			"http://localhost/http://example.com/foo",
 			"http://example.com/foo", emptyOptions, false,
 		},
 		{
-			"http://localhost//http://example.com/foo",
-			"http://example.com/foo", emptyOptions, false,
+			"http://localhost/http://example.com/foo?width=1&height=2",
+			"http://example.com/foo?width=1&height=2", Options{Width: 1, Height: 2}, false,
 		},
 		{
-			"http://localhost//https://example.com/foo",
-			"https://example.com/foo", emptyOptions, false,
-		},
-		{
-			"http://localhost/1x2/http://example.com/foo",
-			"http://example.com/foo", Options{Width: 1, Height: 2}, false,
-		},
-		{
-			"http://localhost//http://example.com/foo?bar",
-			"http://example.com/foo?bar", emptyOptions, false,
+			"http://localhost/http://example.com/foo?width=1&height=2&bar=baz",
+			"http://example.com/foo?width=1&height=2&bar=baz", Options{Width: 1, Height: 2}, false,
 		},
 		{
 			"http://localhost/http:/example.com/foo",
@@ -163,24 +160,20 @@ func TestNewRequest(t *testing.T) {
 
 		// valid URLs with the prefix
 		{
+			"http://localhost/prefix/http://example.com/foo?bar=baz",
+			"http://example.com/foo?bar=baz", emptyOptions, false,
+		},
+		{
 			"http://localhost/prefix/http://example.com/foo",
 			"http://example.com/foo", emptyOptions, false,
 		},
 		{
-			"http://localhost/prefix//http://example.com/foo",
-			"http://example.com/foo", emptyOptions, false,
+			"http://localhost/prefix/http://example.com/foo?width=1&height=2",
+			"http://example.com/foo?width=1&height=2", Options{Width: 1, Height: 2}, false,
 		},
 		{
-			"http://localhost/prefix//https://example.com/foo",
-			"https://example.com/foo", emptyOptions, false,
-		},
-		{
-			"http://localhost/prefix/1x2/http://example.com/foo",
-			"http://example.com/foo", Options{Width: 1, Height: 2}, false,
-		},
-		{
-			"http://localhost/prefix//http://example.com/foo?bar",
-			"http://example.com/foo?bar", emptyOptions, false,
+			"http://localhost/prefix/http://example.com/foo?width=1&height=2&bar=baz",
+			"http://example.com/foo?width=1&height=2&bar=baz", Options{Width: 1, Height: 2}, false,
 		},
 		{
 			"http://localhost/prefix/http:/example.com/foo",

@@ -300,6 +300,7 @@ type TransformingTransport struct {
 
 // RoundTrip implements the http.RoundTripper interface.
 func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	var err error
 	if req.URL.Fragment == "" {
 		// normal requests pass through, image transformations are signaled in Fragment at this point
 		t.logger.Debugw("Fetching remote URL",
@@ -311,6 +312,16 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 
 	u := *req.URL
 	u.Fragment = ""
+
+	// Drop recognized options at this point, so they are not sent upstream
+	u.RawQuery, err = StripOurOptions(u.RawQuery)
+	if err != nil {
+		t.logger.Warnw("Unable to re-parse url query",
+			"u.RawQuery", u.RawQuery,
+			"error", err.Error(),
+		)
+	}
+
 	resp, err := t.CachingClient.Get(u.String())
 	if err != nil {
 		t.logger.Warnw("CachingClient returned an error",
