@@ -319,13 +319,21 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		)
 		return nil, err
 	}
+	defer resp.Body.Close()
+
+	// This should have the side effect of not caching errors
+	if resp.StatusCode >= 400 {
+		t.logger.Warnw("Erroneous status code, bail out asap",
+			"resp.StatusCode", resp.StatusCode,
+		)
+		return nil, fmt.Errorf("unexpected status code %d from upstream", resp.StatusCode)
+	}
 
 	if should304(req, resp) {
 		// bare 304 response, full response will be used from cache
 		return &http.Response{StatusCode: http.StatusNotModified}, nil
 	}
 
-	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.logger.Warnw("Error reading a response",
