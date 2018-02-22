@@ -78,8 +78,15 @@ func Transform(img []byte, opt Options) ([]byte, error) {
 			quality = defaultQuality
 		}
 
+		libjpegOptions := jpeg.EncoderOptions{
+			Quality:         quality,
+			OptimizeCoding:  true,
+			ProgressiveMode: true,
+		}
+
 		m = transformImage(m, opt)
-		err = jpeg.Encode(buf, m, &jpeg.EncoderOptions{Quality: quality})
+
+		err = jpeg.Encode(buf, m, &libjpegOptions)
 		if err != nil {
 			return nil, err
 		}
