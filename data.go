@@ -281,7 +281,7 @@ func ParseFormValues(form url.Values) Options {
 				options.Height, _ = strconv.ParseFloat(value, 64)
 			case "size":
 				size, err := strconv.ParseFloat(value, 64)
-				if err != nil {
+				if err == nil {
 					options.Width = size
 					options.Height = size
 				}
