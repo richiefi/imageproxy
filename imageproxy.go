@@ -98,6 +98,13 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ignore certain urls without actually parsing them
+	if r.URL.Path == "/favicon.ico" || r.URL.Path == "/apple-touch-icon.png" || r.URL.Path == "/apple-touch-icon-precomposed.png" {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "Not found")
+		return
+	}
+
 	var h http.Handler = http.HandlerFunc(p.serveImage)
 	if p.Timeout > 0 {
 		h = tphttp.TimeoutHandler(h, p.Timeout, "Gateway timeout waiting for remote resource.")
