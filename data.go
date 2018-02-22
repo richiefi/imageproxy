@@ -130,18 +130,18 @@ func (o Options) transform() bool {
 	return o.Width != 0 || o.Height != 0 || o.Rotate != 0 || o.FlipHorizontal || o.FlipVertical || o.Quality != 0 || o.Format != "" || o.CropX != 0 || o.CropY != 0 || o.CropWidth != 0 || o.CropHeight != 0
 }
 
-// ParseOptions parses str as a list of comma separated transformation options.
+// ParseFormValues parses a url.Values to transformation options.
 // The options can be specified in in order, with duplicate options overwriting
 // previous values.
 //
 // Rectangle Crop
 //
-// There are four options controlling rectangle crop:
+// 	crop={x,y,width,height}
 //
-// 	cx{x}      - X coordinate of top left rectangle corner (default: 0)
-// 	cy{y}      - Y coordinate of top left rectangle corner (default: 0)
-// 	cw{width}  - rectangle width (default: image width)
-// 	ch{height} - rectangle height (default: image height)
+// 	x      - X coordinate of top left rectangle corner (default: 0)
+// 	y      - Y coordinate of top left rectangle corner (default: 0)
+// 	width  - rectangle width (default: image width)
+// 	height - rectangle height (default: image height)
 //
 // For all options, integer values are interpreted as exact pixel values and
 // floats between 0 and 1 are interpreted as percentages of the original image
@@ -154,19 +154,24 @@ func (o Options) transform() bool {
 //
 // Smart Crop
 //
-// The "sc" option will perform a content-aware smart crop to fit the
+// 	mode=smartcrop
+//
+// The option will perform a content-aware smart crop to fit the
 // requested image width and height dimensions (see Size and Cropping below).
 // The smart crop option will override any requested rectangular crop.
 //
 // Size and Cropping
 //
-// The size option takes the general form "{width}x{height}", where width and
-// height are numbers. Integer values greater than 1 are interpreted as exact
+//	width={width}&height={height}
+//
+// Integer values greater than 1 are interpreted as exact
 // pixel values. Floats between 0 and 1 are interpreted as percentages of the
 // original image size. If either value is omitted or set to 0, it will be
 // automatically set to preserve the aspect ratio based on the other dimension.
-// If a single number is provided (with no "x" separator), it will be used for
-// both height and width.
+//
+//	size={size}
+//
+// If a single size is provided, it will override both width and height.
 //
 // Depending on the size options specified, an image may be cropped to fit the
 // requested size. In all cases, the original aspect ratio of the image will be
@@ -181,7 +186,7 @@ func (o Options) transform() bool {
 // resized to fit the specified dimension, scaling the other dimension as
 // needed to maintain the aspect ratio.
 //
-// If the "fit" option is specified together with a width and height value, the
+// If the "mode=fit" option is specified together with a width and height value, the
 // image will be resized to fit within a containing box of the specified size.
 // As always, the original aspect ratio will be preserved. Specifying the "fit"
 // option with only one of either width or height does the same thing as if
@@ -189,25 +194,25 @@ func (o Options) transform() bool {
 //
 // Rotation and Flips
 //
-// The "r{degrees}" option will rotate the image the specified number of
+// The "r={degrees}" option will rotate the image the specified number of
 // degrees, counter-clockwise. Valid degrees values are 90, 180, and 270.
 //
-// The "fv" option will flip the image vertically. The "fh" option will flip
+// The "flip=v" option will flip the image vertically. The "flip=h" option will flip
 // the image horizontally. Images are flipped after being rotated.
 //
 // Quality
 //
-// The "q{qualityPercentage}" option can be used to specify the quality of the
+// The "quality={qualityPercentage}" option can be used to specify the quality of the
 // output file (JPEG only). If not specified, the default value of "95" is used.
 //
 // Format
 //
-// The "jpeg", "png", and "tiff"  options can be used to specify the desired
-// image format of the proxied image.
+// The "format=jpeg", "format=png", and "format=tiff"  options can be used to specify
+// the desired image format of the proxied image.
 //
 // Signature
 //
-// The "s{signature}" option specifies an optional base64 encoded HMAC used to
+// The "signature={signature}" option specifies an optional base64 encoded HMAC used to
 // sign the remote URL in the request.  The HMAC key used to verify signatures is
 // provided to the imageproxy server on startup.
 //
@@ -216,77 +221,19 @@ func (o Options) transform() bool {
 //
 // Examples
 //
-// 	0x0         - no resizing
-// 	200x        - 200 pixels wide, proportional height
-// 	x0.15       - 15% original height, proportional width
-// 	100x150     - 100 by 150 pixels, cropping as needed
-// 	100         - 100 pixels square, cropping as needed
-// 	150,fit     - scale to fit 150 pixels square, no cropping
-// 	100,r90     - 100 pixels square, rotated 90 degrees
-// 	100,fv,fh   - 100 pixels square, flipped horizontal and vertical
-// 	200x,q60    - 200 pixels wide, proportional height, 60% quality
-// 	200x,png    - 200 pixels wide, converted to PNG format
-// 	cw100,ch100 - crop image to 100px square, starting at (0,0)
-// 	cx10,cy20,cw100,ch200 - crop image starting at (10,20) is 100px wide and 200px tall
-func ParseOptions(str string) Options {
-	var options Options
-
-	for _, opt := range strings.Split(str, ",") {
-		switch {
-		case len(opt) == 0:
-			break
-		case opt == optFit:
-			options.Fit = true
-		case opt == optFlipVertical:
-			options.FlipVertical = true
-		case opt == optFlipHorizontal:
-			options.FlipHorizontal = true
-		case opt == optScaleUp: // this option is intentionally not documented above
-			options.ScaleUp = true
-		case opt == optFormatJPEG, opt == optFormatPNG, opt == optFormatTIFF:
-			options.Format = opt
-		case opt == optSmartCrop:
-			options.SmartCrop = true
-		case strings.HasPrefix(opt, optRotatePrefix):
-			value := strings.TrimPrefix(opt, optRotatePrefix)
-			options.Rotate, _ = strconv.Atoi(value)
-		case strings.HasPrefix(opt, optQualityPrefix):
-			value := strings.TrimPrefix(opt, optQualityPrefix)
-			options.Quality, _ = strconv.Atoi(value)
-		case strings.HasPrefix(opt, optSignaturePrefix):
-			options.Signature = strings.TrimPrefix(opt, optSignaturePrefix)
-		case strings.HasPrefix(opt, optCropX):
-			value := strings.TrimPrefix(opt, optCropX)
-			options.CropX, _ = strconv.ParseFloat(value, 64)
-		case strings.HasPrefix(opt, optCropY):
-			value := strings.TrimPrefix(opt, optCropY)
-			options.CropY, _ = strconv.ParseFloat(value, 64)
-		case strings.HasPrefix(opt, optCropWidth):
-			value := strings.TrimPrefix(opt, optCropWidth)
-			options.CropWidth, _ = strconv.ParseFloat(value, 64)
-		case strings.HasPrefix(opt, optCropHeight):
-			value := strings.TrimPrefix(opt, optCropHeight)
-			options.CropHeight, _ = strconv.ParseFloat(value, 64)
-		case strings.Contains(opt, optSizeDelimiter):
-			size := strings.SplitN(opt, optSizeDelimiter, 2)
-			if w := size[0]; w != "" {
-				options.Width, _ = strconv.ParseFloat(w, 64)
-			}
-			if h := size[1]; h != "" {
-				options.Height, _ = strconv.ParseFloat(h, 64)
-			}
-		default:
-			if size, err := strconv.ParseFloat(opt, 64); err == nil {
-				options.Width = size
-				options.Height = size
-			}
-		}
-	}
-
-	return options
-}
-
-func ParseForm(form url.Values) Options {
+// 	size=0                  - no resizing
+// 	width=200               - 200 pixels wide, proportional height
+// 	height=0.15             - 15% original height, proportional width
+// 	width=100&height=150    - 100 by 150 pixels, cropping as needed
+// 	size=100                - 100 pixels square, cropping as needed
+// 	size=150,mode=fit       - scale to fit 150 pixels square, no cropping
+// 	size=100,rotate=90      - 100 pixels square, rotated 90 degrees
+// 	size=100,flip=v,flip=h  - 100 pixels square, flipped horizontal and vertical
+// 	width=200,quality=60    - 200 pixels wide, proportional height, 60% quality
+// 	width=200,format=png    - 200 pixels wide, converted to PNG format
+// 	crop=0,0,100,100        - crop image to 100px square, starting at (0,0)
+// 	crop=10,20,100,200      - crop image starting at (10,20) is 100px wide and 200px tall
+func ParseFormValues(form url.Values) Options {
 	var options Options
 	for key, values := range form {
 		for _, value := range values {
@@ -388,21 +335,6 @@ func NewRequest(r *http.Request, baseURL *url.URL, urlPrefix string) (*Request, 
 	}
 
 	req.URL, err = parseURL(path)
-	if err != nil || !req.URL.IsAbs() {
-		// first segment should be options
-		parts := strings.SplitN(path, "/", 2)
-		if len(parts) != 2 {
-			return nil, URLError{"too few path segments", r.URL}
-		}
-
-		var err error
-		req.URL, err = parseURL(parts[1])
-		if err != nil {
-			return nil, URLError{fmt.Sprintf("unable to parse remote URL: %v", err), r.URL}
-		}
-
-		req.Options = ParseOptions(parts[0])
-	}
 
 	if baseURL != nil {
 		req.URL = baseURL.ResolveReference(req.URL)
@@ -416,8 +348,15 @@ func NewRequest(r *http.Request, baseURL *url.URL, urlPrefix string) (*Request, 
 		return nil, URLError{"remote URL must have http or https scheme", r.URL}
 	}
 
-	// query string is always part of the remote URL
+	// Options are now based on query strings params of the original request
+	err = r.ParseForm()
+	if err != nil {
+		return nil, err
+	}
+	req.Options = ParseFormValues(r.Form)
+
 	req.URL.RawQuery = r.URL.RawQuery
+
 	return req, nil
 }
 

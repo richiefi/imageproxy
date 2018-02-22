@@ -343,7 +343,16 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		return nil, err
 	}
 
-	opt := ParseOptions(req.URL.Fragment)
+	err = req.ParseForm()
+	if err != nil {
+		t.logger.Warnw("Error parsing query string",
+			"u", u,
+			"error", err.Error(),
+		)
+		return nil, err
+	}
+
+	opt := ParseFormValues(req.Form)
 
 	img, err := Transform(b, opt)
 	if err != nil {
