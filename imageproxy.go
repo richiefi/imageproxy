@@ -109,6 +109,8 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if p.Timeout > 0 {
 		h = tphttp.TimeoutHandler(h, p.Timeout, "Gateway timeout waiting for remote resource.")
 	}
+
+	h = WithLogging(h, p.logger)
 	h.ServeHTTP(w, r)
 }
 
