@@ -31,8 +31,8 @@ signatures among a few others.  Options for are specified as a comma delimited
 list of parameters, which can be supplied in any order.  Duplicate parameters
 overwrite previous values.
 
-See the full list of available options at
-<https://godoc.org/willnorris.com/go/imageproxy#ParseOptions>.
+The options are specified in query string unlike in the trunk version, for compatibility
+with the previously used image processing service.
 
 ### Remote URL ###
 
@@ -52,18 +52,18 @@ source image][small-things], which measures 1024 by 678 pixels.
 
 [small-things]: https://willnorris.com/2013/12/small-things.jpg
 
-Options | Meaning                                  | Image
---------|------------------------------------------|------
-200x    | 200px wide, proportional height          | <a href="https://willnorris.com/api/imageproxy/200x/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/200x/https://willnorris.com/2013/12/small-things.jpg" alt="200x"></a>
-x0.15   | 15% original height, proportional width  | <a href="https://willnorris.com/api/imageproxy/x0.15/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/x0.15/https://willnorris.com/2013/12/small-things.jpg" alt="x0.15"></a>
-100x150 | 100 by 150 pixels, cropping as needed    | <a href="https://willnorris.com/api/imageproxy/100x150/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/100x150/https://willnorris.com/2013/12/small-things.jpg" alt="100x150"></a>
-100     | 100px square, cropping as needed         | <a href="https://willnorris.com/api/imageproxy/100/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/100/https://willnorris.com/2013/12/small-things.jpg" alt="100"></a>
-150,fit | scale to fit 150px square, no cropping   | <a href="https://willnorris.com/api/imageproxy/150,fit/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/150,fit/https://willnorris.com/2013/12/small-things.jpg" alt="150,fit"></a>
-100,r90 | 100px square, rotated 90 degrees         | <a href="https://willnorris.com/api/imageproxy/100,r90/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/100,r90/https://willnorris.com/2013/12/small-things.jpg" alt="100,r90"></a>
-100,fv,fh | 100px square, flipped horizontal and vertical | <a href="https://willnorris.com/api/imageproxy/100,fv,fh/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/100,fv,fh/https://willnorris.com/2013/12/small-things.jpg" alt="100,fv,fh"></a>
-200x,q60 | 200px wide, proportional height, 60% quality | <a href="https://willnorris.com/api/imageproxy/200x,q60/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/200x,q60/https://willnorris.com/2013/12/small-things.jpg" alt="200x,q60"></a>
-200x,png | 200px wide, converted to PNG format | <a href="https://willnorris.com/api/imageproxy/200x,png/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/200x,png/https://willnorris.com/2013/12/small-things.jpg" alt="200x,png"></a>
-cx175,cw400,ch300,100x | crop to 400x300px starting at (175,0), scale to 100px wide | <a href="https://willnorris.com/api/imageproxy/cx175,cw400,ch300,100x/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/cx175,cw400,ch300,100x/https://willnorris.com/2013/12/small-things.jpg" alt="cx175,cw400,ch300,100x"></a>
+Options                | Meaning                                  | Image
+-----------------------|------------------------------------------|------
+width=200              | 200px wide, proportional height          | <a href="https://willnorris.com/api/imageproxy/200x/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/200x/https://willnorris.com/2013/12/small-things.jpg" alt="200x"></a>
+height=0.15            | 15% original height, proportional width  | <a href="https://willnorris.com/api/imageproxy/x0.15/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/x0.15/https://willnorris.com/2013/12/small-things.jpg" alt="x0.15"></a>
+width=100&height=150   | 100 by 150 pixels, cropping as needed    | <a href="https://willnorris.com/api/imageproxy/100x150/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/100x150/https://willnorris.com/2013/12/small-things.jpg" alt="100x150"></a>
+size=100               | 100px square, cropping as needed         | <a href="https://willnorris.com/api/imageproxy/100/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/100/https://willnorris.com/2013/12/small-things.jpg" alt="100"></a>
+size=150,mode=fit      | scale to fit 150px square, no cropping   | <a href="https://willnorris.com/api/imageproxy/150,fit/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/150,fit/https://willnorris.com/2013/12/small-things.jpg" alt="150,fit"></a>
+size=100,rotate=90     | 100px square, rotated 90 degrees         | <a href="https://willnorris.com/api/imageproxy/100,r90/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/100,r90/https://willnorris.com/2013/12/small-things.jpg" alt="100,r90"></a>
+size=100,flip=v,flip=h | 100px square, flipped horizontal and vertical | <a href="https://willnorris.com/api/imageproxy/100,fv,fh/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/100,fv,fh/https://willnorris.com/2013/12/small-things.jpg" alt="100,fv,fh"></a>
+width=200,quality=60   | 200px wide, proportional height, 60% quality | <a href="https://willnorris.com/api/imageproxy/200x,q60/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/200x,q60/https://willnorris.com/2013/12/small-things.jpg" alt="200x,q60"></a>
+width=200,format=png   | 200px wide, converted to PNG format | <a href="https://willnorris.com/api/imageproxy/200x,png/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/200x,png/https://willnorris.com/2013/12/small-things.jpg" alt="200x,png"></a>
+crop=175,400,300,100   | crop to 400x300px starting at (175,0), scale to 100px wide | <a href="https://willnorris.com/api/imageproxy/cx175,cw400,ch300,100x/https://willnorris.com/2013/12/small-things.jpg"><img src="https://willnorris.com/api/imageproxy/cx175,cw400,ch300,100x/https://willnorris.com/2013/12/small-things.jpg" alt="cx175,cw400,ch300,100x"></a>
 
 Transformation also works on animated gifs.  Here is [this source
 image][material-animation] resized to 200px square and rotated 270 degrees:
@@ -90,7 +90,7 @@ using:
 
 This will start the proxy on port 8080, without any caching and with no host
 whitelist (meaning any remote URL can be proxied).  Test this by navigating to
-<http://localhost:8080/500/https://octodex.github.com/images/codercat.jpg> and
+<http://localhost:8080/https://octodex.github.com/images/codercat.jpg?size=500> and
 you should see a 500px square coder octocat.
 
 ### Cache ###
@@ -133,7 +133,7 @@ Reload the [codercat URL][], and then inspect the contents of
 for the original full-size codercat image, and one for the resized 500px
 version.
 
-[codercat URL]: http://localhost:8080/500/https://octodex.github.com/images/codercat.jpg
+[codercat URL]: http://localhost:8080/https://octodex.github.com/images/codercat.jpg?size=500
 
 If the `-cache` flag is specified multiple times, multiple caches will be
 created in a [tiered fashion][]. Typically this is used to put a smaller and
@@ -192,7 +192,7 @@ Try it out by running:
 Reload the [codercat URL][], and you should see an error message.  Now load a
 [signed codercat URL][] and verify that it loads properly.
 
-[signed codercat URL]: http://localhost:8080/500,sXyMwWKIC5JPCtlYOQ2f4yMBTqpjtUsfI67Sp7huXIYY=/https://octodex.github.com/images/codercat.jpg
+[signed codercat URL]: http://localhost:8080/https://octodex.github.com/images/codercat.jpg?size=500,signature=sXyMwWKIC5JPCtlYOQ2f4yMBTqpjtUsfI67Sp7huXIYY%3D
 
 Some simple code samples for generating signatures in various languages can be
 found in [URL Signing](https://github.com/willnorris/imageproxy/wiki/URL-signing).
