@@ -38,13 +38,7 @@ type Proxy struct {
 	// hosts are allowed.
 	Referrers []string
 
-	// URLPrefix is a prefix of the URL that will be stripped
-	URLPrefix string
-
-	// DefaultBaseURL is the URL that relative remote URLs are resolved in
-	// reference to.  If nil, all remote URLs specified in requests must be
-	// absolute.
-	DefaultBaseURL *url.URL
+	PrefixesToBaseURLs map[string]*url.URL
 
 	// SignatureKey is the HMAC key used to verify signed requests.
 	SignatureKey []byte
@@ -116,7 +110,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // serveImage handles incoming requests for proxied images.
 func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
-	req, err := NewRequest(r, p.DefaultBaseURL, p.URLPrefix)
+	req, err := NewRequest(r, p.PrefixesToBaseURLs)
 	if err != nil {
 		p.logger.Infow("invalid request URL",
 			"error", err.Error(),

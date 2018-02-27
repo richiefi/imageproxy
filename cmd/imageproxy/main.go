@@ -2,6 +2,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -31,8 +32,7 @@ const defaultMemorySize = 100
 var addr = flag.String("addr", "localhost:8080", "TCP address to listen on")
 var whitelist = flag.String("whitelist", "", "comma separated list of allowed remote hosts")
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
-var urlPrefix = flag.String("urlPrefix", "", "url prefix for this service, will be removed before processing")
-var baseURL = flag.String("baseURL", "", "default base URL for relative remote URLs")
+var prefixesToBaseURLs = flag.String("prefixesToBaseURLs", "", "json object of url prefixes for this service")
 var cache tieredCache
 var signatureKey = flag.String("signatureKey", "", "HMAC key used in calculating request signatures")
 var scaleUp = flag.Bool("scaleUp", false, "allow images to scale beyond their original dimensions")
@@ -62,9 +62,7 @@ func main() {
 	logger := buildLogger()
 
 	p := imageproxy.NewProxy(nil, cache.Cache, logger)
-	if *urlPrefix != "" {
-		p.URLPrefix = *urlPrefix
-	}
+
 	if *whitelist != "" {
 		p.Whitelist = strings.Split(*whitelist, ",")
 	}
@@ -86,15 +84,27 @@ func main() {
 		}
 		p.SignatureKey = key
 	}
-	if *baseURL != "" {
-		var err error
-		p.DefaultBaseURL, err = url.Parse(*baseURL)
+
+	if *prefixesToBaseURLs != "" {
+		prefixesToBaseURLsMap := make(map[string]*url.URL, 32)
+		prefixesToBaseURLStrings := make(map[string]string, 32)
+		err := json.Unmarshal([]byte(*prefixesToBaseURLs), &prefixesToBaseURLStrings)
 		if err != nil {
-			logger.Fatalw("error parsing baseURL",
-				"baseURL", baseURL,
+			logger.Fatalw("Could not read prefix mapping JSON",
 				"error", err.Error(),
 			)
 		}
+		for prefix, baseURLString := range prefixesToBaseURLStrings {
+			baseURL, err := url.Parse(baseURLString)
+			if err != nil {
+				logger.Fatalw("error parsing a baseURL",
+					"baseURL", baseURL,
+					"error", err.Error(),
+				)
+			}
+			prefixesToBaseURLsMap[prefix] = baseURL
+		}
+		p.PrefixesToBaseURLs = prefixesToBaseURLsMap
 	}
 
 	p.Timeout = *timeout
