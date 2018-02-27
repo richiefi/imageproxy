@@ -201,17 +201,14 @@ If both a whiltelist and signatureKey are specified, requests can match either.
 In other words, requests that match one of the whitelisted hosts don't
 necessarily need to be signed, though they can be.
 
-### Default Base URL ###
+### Default Base URLs ###
 
-Typically, remote images to be proxied are specified as absolute URLs.
-However, if you commonly proxy images from a single source, you can provide a
-base URL and then specify remote images relative to that base.  Try it out by
-running:
+You may provide prefixes that map to base URLs.
 
-    imageproxy -baseURL https://octodex.github.com/
+    imageproxy -prefixesToBaseURLs '{"/proxy":"https://octodex.github.com/"}'
 
 Then load the codercat image, specified as a URL relative to that base:
-<http://localhost:8080/500/images/codercat.jpg>.  Note that this is not an
+<http://localhost:8080/proxy/500/images/codercat.jpg>.  Note that this is not an
 effective method to mask the true source of the images being proxied; it is
 trivial to discover the base URL being used.  Even when a base URL is
 specified, you can always provide the absolute URL of the image to be proxied.
