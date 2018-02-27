@@ -380,10 +380,19 @@ func NewRequest(r *http.Request, prefixesToBaseURLs map[string]*url.URL) (*Reque
 
 func buildFinalAbsoluteURL(prefixesToBaseURLs map[string]*url.URL, originalURL *url.URL) (*url.URL, error) {
 	path := originalURL.EscapedPath()[1:]
+
+	bestMatchLen := -1
+
 	for urlPrefix, baseURL := range prefixesToBaseURLs {
 		urlPrefixWithoutTail := strings.TrimRight(urlPrefix, "/")
 
 		if strings.HasPrefix(originalURL.EscapedPath(), urlPrefixWithoutTail) {
+			matchLen := len(urlPrefixWithoutTail)
+			if matchLen < bestMatchLen {
+				continue
+			}
+			bestMatchLen = matchLen
+
 			strippedPath := path[len(urlPrefixWithoutTail):] // strip the prefix
 
 			finalURL, err := parseURL(strippedPath)
