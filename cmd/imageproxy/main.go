@@ -32,7 +32,7 @@ const defaultMemorySize = 100
 var addr = flag.String("addr", "localhost:8080", "TCP address to listen on")
 var whitelist = flag.String("whitelist", "", "comma separated list of allowed remote hosts")
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
-var prefixesToBaseURLs = flag.String("prefixesToBaseURLs", "", "json object of url prefixes for this service")
+var baseURLConfURL = flag.String("baseURLConfURL", "", "location of json object of url prefixes for this service")
 var cache tieredCache
 var signatureKey = flag.String("signatureKey", "", "HMAC key used in calculating request signatures")
 var scaleUp = flag.Bool("scaleUp", false, "allow images to scale beyond their original dimensions")
@@ -85,10 +85,22 @@ func main() {
 		p.SignatureKey = key
 	}
 
-	if *prefixesToBaseURLs != "" {
-		prefixesToBaseURLsMap := make(map[string]*url.URL, 32)
+	// Empty map as a default, try to fill it
+	p.PrefixesToBaseURLs = make(map[string]*url.URL, 32)
+
+	if *baseURLConfURL != "" {
+		resp, err := http.Get(*baseURLConfURL)
+		if err != nil {
+			logger.Fatalw("Could not download URL mapping JSON",
+				"error", err.Error(),
+				"*baseURLConfURL", baseURLConfURL,
+			)
+		}
+		defer resp.Body.Close()
+
 		prefixesToBaseURLStrings := make(map[string]string, 32)
-		err := json.Unmarshal([]byte(*prefixesToBaseURLs), &prefixesToBaseURLStrings)
+		decoder := json.NewDecoder(resp.Body)
+		err = decoder.Decode(&prefixesToBaseURLStrings)
 		if err != nil {
 			logger.Fatalw("Could not read prefix mapping JSON",
 				"error", err.Error(),
@@ -102,9 +114,8 @@ func main() {
 					"error", err.Error(),
 				)
 			}
-			prefixesToBaseURLsMap[prefix] = baseURL
+			p.PrefixesToBaseURLs[prefix] = baseURL
 		}
-		p.PrefixesToBaseURLs = prefixesToBaseURLsMap
 	}
 
 	p.Timeout = *timeout

@@ -203,9 +203,16 @@ necessarily need to be signed, though they can be.
 
 ### Default Base URLs ###
 
-You may provide prefixes that map to base URLs.
+You may provide prefixes that map to base URLs by storing a JSON document
+in a certain location.
 
-    imageproxy -prefixesToBaseURLs '{"/proxy":"https://octodex.github.com/"}'
+Contents of `https://config.config/config.json`:
+
+	{"/proxy":"https://octodex.github.com"}
+
+imageproxy launch command:
+
+    imageproxy -baseURLConfURL https://config.config/config.json
 
 Then load the codercat image, specified as a URL relative to that base:
 <http://localhost:8080/proxy/500/images/codercat.jpg>.  Note that this is not an
@@ -251,8 +258,8 @@ the following seems to work for building `imageproxy` and running on Ubuntu:
 
 ```
 export CGO_CFLAGS="-I/opt/mozjpeg/include/"
-export CGO_LDFLAGS="-L/opt/mozjpeg/lib64/"
-export LD_LIBRARY_PATH="/opt/mozjpeg/lib64/"
+export CGO_LDFLAGS="-L/opt/mozjpeg/lib/"
+export LD_LIBRARY_PATH="/opt/mozjpeg/lib/"
 go install github.com/richiefi/imageproxy/cmd/imageproxy
 imageproxy
 ```
@@ -264,3 +271,6 @@ export CGO_LDFLAGS="-L/usr/local/opt/jpeg-turbo/lib"
 go install github.com/richiefi/imageproxy/cmd/imageproxy
 imageproxy
 ```
+
+
+go install github.com/richiefi/imageproxy/cmd/imageproxy
