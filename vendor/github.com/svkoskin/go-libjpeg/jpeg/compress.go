@@ -269,4 +269,15 @@ func setupEncoderOptions(cinfo *C.struct_jpeg_compress_struct, opt *EncoderOptio
 		C.jpeg_simple_progression(cinfo)
 	}
 	cinfo.dct_method = C.J_DCT_METHOD(opt.DCTMethod)
+
+	/*
+		Disable chroma subsampling for good quality ratings, that's what cjpeg command does as well.
+		That seems to cause some issues with red color.
+	*/
+	if opt.Quality >= 80 {
+		compInfo := (*[3]C.jpeg_component_info)(unsafe.Pointer(cinfo.comp_info))
+		compInfo[Y].h_samp_factor, compInfo[Y].v_samp_factor = 1, 1
+		compInfo[Cb].h_samp_factor, compInfo[Cb].v_samp_factor = 1, 1
+		compInfo[Cr].h_samp_factor, compInfo[Cr].v_samp_factor = 1, 1
+	}
 }
