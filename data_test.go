@@ -200,7 +200,10 @@ func TestNewRequest(t *testing.T) {
 				continue
 			}
 
-			r, err := NewRequest(req, nil, prefix)
+			// Define that our prefix has to be stripped but does not specify a base URL to be used
+			prefixMap := map[string]*url.URL{prefix: nil}
+
+			r, err := NewRequest(req, prefixMap)
 			if tt.ExpectError {
 				if err == nil {
 					t.Errorf("NewRequest(%v) did not return expected error", req)
@@ -219,4 +222,43 @@ func TestNewRequest(t *testing.T) {
 			}
 		}
 	}
+}
+
+func Test_NewRequest_PrefixAndBaseURL(t *testing.T) {
+	req, err := http.NewRequest("GET", "http://localhost/prefix/baz.jpg?size=123", nil)
+	if err != nil {
+		t.Errorf("http.NewRequest returned error: %s", err.Error())
+		return
+	}
+
+	baseURL, err := url.Parse("https://imagehost.invalid/foobar/")
+	if err != nil {
+		t.Errorf("url.Parse returned error: %s", err.Error())
+		return
+	}
+
+	// Define that our prefix has to be stripped and it specifies a base URL
+	prefixMap := map[string]*url.URL{
+		"/prefix": baseURL,
+	}
+
+	r, err := NewRequest(req, prefixMap)
+	if err != nil {
+		t.Errorf("NewRequest(%v) return unexpected error: %v", req, err)
+		return
+	}
+
+	expectedRemoteURL := "https://imagehost.invalid/foobar/baz.jpg?size=123"
+	actualRemoteURL := r.URL.String()
+
+	expectedOptions := Options{Width: 123, Height: 123}
+	actualOptions := r.Options
+
+	if expectedRemoteURL != actualRemoteURL {
+		t.Errorf("NewRequest request URL = %v, want %v", actualRemoteURL, expectedRemoteURL)
+	}
+	if expectedOptions != actualOptions {
+		t.Errorf("NewRequest request options = %v, want %v", actualOptions, expectedOptions)
+	}
+
 }
