@@ -1,6 +1,7 @@
 package imageproxy
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -41,41 +42,69 @@ func (e URLError) Error() string {
 // Options specifies transformations to be performed on the requested image.
 type Options struct {
 	// See ParseOptions for interpretation of Width and Height values
-	Width  float64
-	Height float64
+	Width  float64 `json:"width"`
+	Height float64 `json:"height"`
 
 	// If true, resize the image to fit in the specified dimensions.  Image
 	// will not be cropped, and aspect ratio will be maintained.
-	Fit bool
+	Fit bool `json:"fit"`
 
 	// Rotate image the specified degrees counter-clockwise.  Valid values
 	// are 90, 180, 270.
-	Rotate int
+	Rotate int `json:"rotate"`
 
-	FlipVertical   bool
-	FlipHorizontal bool
+	FlipVertical   bool `json:"flip_vertical"`
+	FlipHorizontal bool `json:"flip_horizontal"`
 
 	// Quality of output image
-	Quality int
+	Quality int `json:"quality"`
 
 	// HMAC Signature for signed requests.
-	Signature string
+	Signature string `json:"signature"`
 
 	// Allow image to scale beyond its original dimensions.  This value
 	// will always be overwritten by the value of Proxy.ScaleUp.
-	ScaleUp bool
+	ScaleUp bool `json:"scale_up"`
 
 	// Desired image format. Valid values are "jpeg", "png", "tiff".
-	Format string
+	Format string `json:"format"`
 
 	// Crop rectangle params
-	CropX      float64
-	CropY      float64
-	CropWidth  float64
-	CropHeight float64
+	CropX      float64 `json:"crop_x"`
+	CropY      float64 `json:"crop_y"`
+	CropWidth  float64 `json:"crop_width"`
+	CropHeight float64 `json:"crop_height"`
 
 	// Automatically find good crop points based on image content.
-	SmartCrop bool
+	SmartCrop bool `json:"smart_crop"`
+}
+
+type SourceConfiguration struct {
+	BaseURL        *url.URL
+	DefaultOptions Options
+}
+
+func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
+	/*
+		Make it possible to unmarshal bytes into a struct with a *url.URL field by first unmarshaling into
+		a struct without *url.URLs and then parsing the URL.
+	*/
+	var confWithString struct {
+		BaseURL        string  `json:"base_url"`
+		DefaultOptions Options `json:"default_options"`
+	}
+	err := json.Unmarshal(bytes, &confWithString)
+	if err != nil {
+		return err
+	}
+	baseURL, err := url.Parse(confWithString.BaseURL)
+	if err != nil {
+		return err
+	}
+
+	conf.BaseURL = baseURL
+	conf.DefaultOptions = confWithString.DefaultOptions
+	return nil
 }
 
 func (o Options) String() string {
@@ -349,11 +378,11 @@ func (r Request) String() string {
 // 	http://localhost/100x200,r90/http://example.com/image.jpg?foo=bar
 // 	http://localhost//http://example.com/image.jpg
 // 	http://localhost/http://example.com/image.jpg
-func NewRequest(r *http.Request, prefixesToBaseURLs map[string]*url.URL) (*Request, error) {
+func NewRequest(r *http.Request, prefixesToConfigs map[string]*SourceConfiguration) (*Request, error) {
 	var err error
 	req := &Request{Original: r}
 
-	req.URL, err = buildFinalAbsoluteURL(prefixesToBaseURLs, r.URL)
+	req.URL, err = buildFinalAbsoluteURL(prefixesToConfigs, r.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -378,12 +407,35 @@ func NewRequest(r *http.Request, prefixesToBaseURLs map[string]*url.URL) (*Reque
 	return req, nil
 }
 
-func buildFinalAbsoluteURL(prefixesToBaseURLs map[string]*url.URL, originalURL *url.URL) (*url.URL, error) {
+func buildFinalAbsoluteURL(prefixesToConfigs map[string]*SourceConfiguration, originalURL *url.URL) (*url.URL, error) {
 	path := originalURL.EscapedPath()[1:]
 
-	bestMatchLen := -1
+	matchingPrefix, config := bestMatchingConfig(prefixesToConfigs, originalURL)
 
-	for urlPrefix, baseURL := range prefixesToBaseURLs {
+	if config != nil {
+		urlPrefixWithoutTail := strings.TrimRight(matchingPrefix, "/")
+		strippedPath := path[len(urlPrefixWithoutTail):] // strip the prefix
+
+		finalURL, err := parseURL(strippedPath)
+
+		// Add parsed URL to the matching base URL if there is one
+		if config.BaseURL != nil {
+			finalURL = config.BaseURL.ResolveReference(finalURL)
+		}
+		return finalURL, err
+
+	} else {
+		// Not a single matching prefix was found.
+		return parseURL(path)
+	}
+}
+
+func bestMatchingConfig(prefixesToConfigs map[string]*SourceConfiguration, originalURL *url.URL) (string, *SourceConfiguration) {
+	bestMatchLen := -1
+	bestMatchPrefix := ""
+	var bestConfig *SourceConfiguration = nil
+
+	for urlPrefix, config := range prefixesToConfigs {
 		urlPrefixWithoutTail := strings.TrimRight(urlPrefix, "/")
 
 		if strings.HasPrefix(originalURL.EscapedPath(), urlPrefixWithoutTail) {
@@ -391,22 +443,14 @@ func buildFinalAbsoluteURL(prefixesToBaseURLs map[string]*url.URL, originalURL *
 			if matchLen < bestMatchLen {
 				continue
 			}
+
+			// A better thing found
 			bestMatchLen = matchLen
-
-			strippedPath := path[len(urlPrefixWithoutTail):] // strip the prefix
-
-			finalURL, err := parseURL(strippedPath)
-
-			// Add parsed URL to the matching base URL if there is one
-			if baseURL != nil {
-				finalURL = baseURL.ResolveReference(finalURL)
-			}
-
-			return finalURL, err
+			bestMatchPrefix = urlPrefix
+			bestConfig = config
 		}
 	}
-	// No matching prefixes, try to move on
-	return parseURL(path)
+	return bestMatchPrefix, bestConfig
 }
 
 var reCleanedURL = regexp.MustCompile(`^(https?):/+([^/])`)

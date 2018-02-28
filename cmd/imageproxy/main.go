@@ -86,7 +86,7 @@ func main() {
 	}
 
 	// Empty map as a default, try to fill it
-	p.PrefixesToBaseURLs = make(map[string]*url.URL, 32)
+	p.PrefixesToConfigs = make(map[string]*imageproxy.SourceConfiguration, 0)
 
 	if *baseURLConfURL != "" {
 		resp, err := http.Get(*baseURLConfURL)
@@ -98,24 +98,14 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		prefixesToBaseURLStrings := make(map[string]string, 32)
 		decoder := json.NewDecoder(resp.Body)
-		err = decoder.Decode(&prefixesToBaseURLStrings)
+		err = decoder.Decode(&p.PrefixesToConfigs)
 		if err != nil {
 			logger.Fatalw("Could not read prefix mapping JSON",
 				"error", err.Error(),
 			)
 		}
-		for prefix, baseURLString := range prefixesToBaseURLStrings {
-			baseURL, err := url.Parse(baseURLString)
-			if err != nil {
-				logger.Fatalw("error parsing a baseURL",
-					"baseURL", baseURL,
-					"error", err.Error(),
-				)
-			}
-			p.PrefixesToBaseURLs[prefix] = baseURL
-		}
+
 	}
 
 	p.Timeout = *timeout

@@ -38,7 +38,7 @@ type Proxy struct {
 	// hosts are allowed.
 	Referrers []string
 
-	PrefixesToBaseURLs map[string]*url.URL
+	PrefixesToConfigs map[string]*SourceConfiguration
 
 	// SignatureKey is the HMAC key used to verify signed requests.
 	SignatureKey []byte
@@ -110,7 +110,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // serveImage handles incoming requests for proxied images.
 func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
-	req, err := NewRequest(r, p.PrefixesToBaseURLs)
+	req, err := NewRequest(r, p.PrefixesToConfigs)
 	if err != nil {
 		p.logger.Infow("invalid request URL",
 			"error", err.Error(),

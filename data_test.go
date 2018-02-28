@@ -201,9 +201,10 @@ func TestNewRequest(t *testing.T) {
 			}
 
 			// Define that our prefix has to be stripped but does not specify a base URL to be used
-			prefixMap := map[string]*url.URL{prefix: nil}
+			cfg := SourceConfiguration{BaseURL: nil}
+			configMap := map[string]*SourceConfiguration{prefix: &cfg}
 
-			r, err := NewRequest(req, prefixMap)
+			r, err := NewRequest(req, configMap)
 			if tt.ExpectError {
 				if err == nil {
 					t.Errorf("NewRequest(%v) did not return expected error", req)
@@ -236,13 +237,14 @@ func Test_NewRequest_PrefixAndBaseURL(t *testing.T) {
 		t.Errorf("url.Parse returned error: %s", err.Error())
 		return
 	}
+	cfg := SourceConfiguration{BaseURL: baseURL}
 
 	// Define that our prefix has to be stripped and it specifies a base URL
-	prefixMap := map[string]*url.URL{
-		"/prefix": baseURL,
+	configMap := map[string]*SourceConfiguration{
+		"/prefix": &cfg,
 	}
 
-	r, err := NewRequest(req, prefixMap)
+	r, err := NewRequest(req, configMap)
 	if err != nil {
 		t.Errorf("NewRequest(%v) return unexpected error: %v", req, err)
 		return
