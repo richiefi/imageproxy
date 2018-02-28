@@ -56,11 +56,11 @@ func TestParseFormValues(t *testing.T) {
 		// size variations
 		{"width=1", Options{Width: 1}},
 		{"height=1", Options{Height: 1}},
-		{"width=1&height=2", Options{Width: 1, Height: 2}},
+		{"width=1&height=2", Options{Width: 1, Height: 2, Fit: true}},
 		{"width=-1&height=-2", Options{Width: -1, Height: -2}},
-		{"width=0.1&height=0.2", Options{Width: 0.1, Height: 0.2}},
-		{"size=1", Options{Width: 1, Height: 1}},
-		{"size=0.1", Options{Width: 0.1, Height: 0.1}},
+		{"width=0.1&height=0.2", Options{Width: 0.1, Height: 0.2, Fit: true}},
+		{"size=1", Options{Width: 1, Height: 1, Fit: true}},
+		{"size=0.1", Options{Width: 0.1, Height: 0.1, Fit: true}},
 
 		// additional flags
 		{"mode=fit", Options{Fit: true}},
@@ -70,7 +70,7 @@ func TestParseFormValues(t *testing.T) {
 		{"format=jpeg", Options{Format: "jpeg"}},
 
 		// mix of valid and invalid flags
-		{"FOO=BAR&size=1&BAR=foo&rotate=90&BAZ=DAS", Options{Width: 1, Height: 1, Rotate: 90}},
+		{"FOO=BAR&size=1&BAR=foo&rotate=90&BAZ=DAS", Options{Width: 1, Height: 1, Rotate: 90, Fit: true}},
 
 		// flags, in different orders
 		{"quality=70&width=1&height=2&mode=fit&rotate=90&flip=v&flip=h&signature=c0ffee&format=png", Options{1, 2, true, 90, true, true, 70, "c0ffee", false, "png", 0, 0, 0, 0, false}},
@@ -139,11 +139,11 @@ func TestNewRequest(t *testing.T) {
 		},
 		{
 			"http://localhost/http://example.com/foo?width=1&height=2",
-			"http://example.com/foo?width=1&height=2", Options{Width: 1, Height: 2}, false,
+			"http://example.com/foo?width=1&height=2", Options{Width: 1, Height: 2, Fit: true}, false,
 		},
 		{
 			"http://localhost/http://example.com/foo?width=1&height=2&bar=baz",
-			"http://example.com/foo?width=1&height=2&bar=baz", Options{Width: 1, Height: 2}, false,
+			"http://example.com/foo?width=1&height=2&bar=baz", Options{Width: 1, Height: 2, Fit: true}, false,
 		},
 		{
 			"http://localhost/http:/example.com/foo",
@@ -169,11 +169,11 @@ func TestNewRequest(t *testing.T) {
 		},
 		{
 			"http://localhost/prefix/http://example.com/foo?width=1&height=2",
-			"http://example.com/foo?width=1&height=2", Options{Width: 1, Height: 2}, false,
+			"http://example.com/foo?width=1&height=2", Options{Width: 1, Height: 2, Fit: true}, false,
 		},
 		{
 			"http://localhost/prefix/http://example.com/foo?width=1&height=2&bar=baz",
-			"http://example.com/foo?width=1&height=2&bar=baz", Options{Width: 1, Height: 2}, false,
+			"http://example.com/foo?width=1&height=2&bar=baz", Options{Width: 1, Height: 2, Fit: true}, false,
 		},
 		{
 			"http://localhost/prefix/http:/example.com/foo",
@@ -253,7 +253,7 @@ func Test_NewRequest_PrefixAndBaseURL(t *testing.T) {
 	expectedRemoteURL := "https://imagehost.invalid/foobar/baz.jpg?size=123"
 	actualRemoteURL := r.URL.String()
 
-	expectedOptions := Options{Width: 123, Height: 123}
+	expectedOptions := Options{Width: 123, Height: 123, Fit: true}
 	actualOptions := r.Options
 
 	if expectedRemoteURL != actualRemoteURL {
