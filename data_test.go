@@ -94,7 +94,7 @@ func TestParseFormValues(t *testing.T) {
 			panic(err)
 		}
 
-		if got, want := ParseFormValues(input), tt.Options; got != want {
+		if got, want := ParseFormValues(input, Options{}), tt.Options; got != want {
 			t.Errorf("ParseFormValues(%q) returned %#v, want %#v", tt.InputQS, got, want)
 		}
 	}

@@ -41,6 +41,8 @@ func (e URLError) Error() string {
 
 // Options specifies transformations to be performed on the requested image.
 type Options struct {
+	// Make sure Options never has pointer members. The config parsing depends on that.
+
 	// See ParseOptions for interpretation of Width and Height values
 	Width  float64 `json:"width"`
 	Height float64 `json:"height"`
@@ -262,8 +264,10 @@ func (o Options) transform() bool {
 // 	width=200,format=png    - 200 pixels wide, converted to PNG format
 // 	crop=0,0,100,100        - crop image to 100px square, starting at (0,0)
 // 	crop=10,20,100,200      - crop image starting at (10,20) is 100px wide and 200px tall
-func ParseFormValues(form url.Values) Options {
-	var options Options
+func ParseFormValues(form url.Values, defaultOptions Options) Options {
+	// This should make a copy, since we are dealing with structs, not pointers, and Options does not have pointer members.
+	options := defaultOptions
+
 	for key, values := range form {
 		for _, value := range values {
 			switch key {
@@ -454,12 +458,20 @@ func NewRequest(r *http.Request, prefixesToConfigs map[string]*SourceConfigurati
 		return nil, URLError{"remote URL must have http or https scheme", r.URL}
 	}
 
+	_, config := bestMatchingConfig(prefixesToConfigs, r.URL)
+	var defaultOptions Options
+	if config != nil {
+		defaultOptions = config.DefaultOptions
+	} else {
+		defaultOptions = Options{}
+	}
+
 	// Options are now based on query strings params of the original request
 	err = r.ParseForm()
 	if err != nil {
 		return nil, err
 	}
-	req.Options = ParseFormValues(r.Form)
+	req.Options = ParseFormValues(r.Form, defaultOptions)
 
 	req.URL.RawQuery = r.URL.RawQuery
 
