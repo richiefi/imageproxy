@@ -264,3 +264,56 @@ func Test_NewRequest_PrefixAndBaseURL(t *testing.T) {
 	}
 
 }
+
+func Test_StripOurOptions_NoOptions(t *testing.T) {
+	input := ""
+	expected := ""
+	actual, err := StripOurOptions(input)
+	if err != nil {
+		t.Fatalf("caught unexpected error: %s", err.Error())
+	}
+	if expected != actual {
+		t.Fatalf("Got '%s', expecting '%s'", actual, expected)
+	}
+}
+
+func Test_StripOurOptions_OnlyOurOptions(t *testing.T) {
+	input := "mode=jpeg&width=50"
+	expected := ""
+	actual, err := StripOurOptions(input)
+	if err != nil {
+		t.Fatalf("caught unexpected error: %s", err.Error())
+	}
+	if expected != actual {
+		t.Fatalf("Got '%s', expecting '%s'", actual, expected)
+	}
+}
+
+func Test_StripOurOptions_OnlyRemoteoOptions(t *testing.T) {
+	input := "id=123&secret_token=aaa"
+	actual, err := StripOurOptions(input)
+	if err != nil {
+		t.Fatalf("caught unexpected error: %s", err.Error())
+	}
+
+	// Allow both orders
+	for _, allowed := range []string{"id=123&secret_token=aaa", "secret_token=aaa&id=123"} {
+		if actual == allowed {
+			return
+		}
+	}
+
+	t.Fatalf("Got '%s', expecting '%s' or equivalent", actual, input)
+}
+
+func Test_StripOurOptions_AllKindsOfOptions(t *testing.T) {
+	input := "mode=jpeg&id=123"
+	expected := "id=123"
+	actual, err := StripOurOptions(input)
+	if err != nil {
+		t.Fatalf("caught unexpected error: %s", err.Error())
+	}
+	if expected != actual {
+		t.Fatalf("Got '%s', expecting '%s'", actual, expected)
+	}
+}
