@@ -268,6 +268,8 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 	// This should make a copy, since we are dealing with structs, not pointers, and Options does not have pointer members.
 	options := defaultOptions
 
+	modeSeen := false
+
 	for key, values := range form {
 		for _, value := range values {
 			switch key {
@@ -278,6 +280,7 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 				case "smartcrop":
 					options.SmartCrop = true
 				}
+				modeSeen = true
 			case "flip":
 				switch value {
 				case "v":
@@ -321,6 +324,16 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 			}
 		}
 	}
+
+	/*
+		The transformation code doesn't currently do anything if Fit is true and either width or height is 0.
+		However, for libpixel compatibility Fit is supposed to be the default. Ask for Fit if no mode
+		was specified and width and height are positive.
+	*/
+	if !modeSeen && options.Width > 0 && options.Height > 0 {
+		options.Fit = true
+	}
+
 	return options
 }
 
