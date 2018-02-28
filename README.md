@@ -208,7 +208,7 @@ in a certain location.
 
 Contents of `https://config.config/config.json`:
 
-	{"/proxy":"https://octodex.github.com"}
+	{"/proxy":{"base_url::"https://octodex.github.com","default_options":{}}
 
 imageproxy launch command:
 
