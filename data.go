@@ -320,6 +320,65 @@ func ParseFormValues(form url.Values) Options {
 	return options
 }
 
+// ParseOptions is useful, although no longer exposed to the API
+func ParseOptions(str string) Options {
+	var options Options
+
+	for _, opt := range strings.Split(str, ",") {
+		switch {
+		case len(opt) == 0:
+			break
+		case opt == optFit:
+			options.Fit = true
+		case opt == optFlipVertical:
+			options.FlipVertical = true
+		case opt == optFlipHorizontal:
+			options.FlipHorizontal = true
+		case opt == optScaleUp: // this option is intentionally not documented above
+			options.ScaleUp = true
+		case opt == optFormatJPEG, opt == optFormatPNG, opt == optFormatTIFF:
+			options.Format = opt
+		case opt == optSmartCrop:
+			options.SmartCrop = true
+		case strings.HasPrefix(opt, optRotatePrefix):
+			value := strings.TrimPrefix(opt, optRotatePrefix)
+			options.Rotate, _ = strconv.Atoi(value)
+		case strings.HasPrefix(opt, optQualityPrefix):
+			value := strings.TrimPrefix(opt, optQualityPrefix)
+			options.Quality, _ = strconv.Atoi(value)
+		case strings.HasPrefix(opt, optSignaturePrefix):
+			options.Signature = strings.TrimPrefix(opt, optSignaturePrefix)
+		case strings.HasPrefix(opt, optCropX):
+			value := strings.TrimPrefix(opt, optCropX)
+			options.CropX, _ = strconv.ParseFloat(value, 64)
+		case strings.HasPrefix(opt, optCropY):
+			value := strings.TrimPrefix(opt, optCropY)
+			options.CropY, _ = strconv.ParseFloat(value, 64)
+		case strings.HasPrefix(opt, optCropWidth):
+			value := strings.TrimPrefix(opt, optCropWidth)
+			options.CropWidth, _ = strconv.ParseFloat(value, 64)
+		case strings.HasPrefix(opt, optCropHeight):
+			value := strings.TrimPrefix(opt, optCropHeight)
+			options.CropHeight, _ = strconv.ParseFloat(value, 64)
+		case strings.Contains(opt, optSizeDelimiter):
+			size := strings.SplitN(opt, optSizeDelimiter, 2)
+			if w := size[0]; w != "" {
+				options.Width, _ = strconv.ParseFloat(w, 64)
+			}
+			if h := size[1]; h != "" {
+				options.Height, _ = strconv.ParseFloat(h, 64)
+			}
+		default:
+			if size, err := strconv.ParseFloat(opt, 64); err == nil {
+				options.Width = size
+				options.Height = size
+			}
+		}
+	}
+
+	return options
+}
+
 func StripOurOptions(rawQuery string) (string, error) {
 	// Delete our options. This is useful when the request is pushed upstream.
 	values, err := url.ParseQuery(rawQuery)

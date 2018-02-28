@@ -357,7 +357,7 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		return nil, err
 	}
 
-	opt := ParseFormValues(req.Form)
+	opt := ParseOptions(req.URL.Fragment)
 
 	img, err := Transform(b, opt)
 	if err != nil {
