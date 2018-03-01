@@ -1,0 +1,16 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.9
+    working_directory: /go/src/github.com/richiefi/imageproxy
+    environment:
+      CGO_CFLAGS: '-I/usr/local/include/'
+      CGO_LDFLAGS: '-L/usr/local/lib64/'
+      LD_LIBRARY_PATH: '/usr/local/lib64/'
+    steps:
+      - checkout
+      - run: sudo apt install autoconf automake libtool nasm
+      - run: sudo bash ./build-mozjpeg.sh
+      - run: go vet ./...
+      - run: go test ./...
