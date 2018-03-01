@@ -22,6 +22,8 @@ import (
 	tphttp "github.com/richiefi/imageproxy/third_party/http"
 )
 
+const cacheTags = "imageproxy,imageproxy-1"
+
 // Proxy serves image requests.
 type Proxy struct {
 	logger *zap.SugaredLogger
@@ -151,6 +153,9 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	)
 
 	copyHeader(w.Header(), resp.Header, "Cache-Control", "Last-Modified", "Expires", "Etag", "Link")
+
+	// Set Cache-Tag values to make it possible to detect and purge responses created by this app
+	resp.Header.Set("Cache-Tag", cacheTags)
 
 	if should304(r, resp) {
 		w.WriteHeader(http.StatusNotModified)
