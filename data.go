@@ -39,6 +39,34 @@ func (e URLError) Error() string {
 	return fmt.Sprintf("malformed URL %q: %s", e.URL, e.Message)
 }
 
+type SourceConfiguration struct {
+	BaseURL        *url.URL
+	DefaultOptions Options
+}
+
+func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
+	/*
+		Make it possible to unmarshal bytes into a struct with a *url.URL field by first unmarshaling into
+		a struct without *url.URLs and then parsing the URL.
+	*/
+	var confWithString struct {
+		BaseURL        string  `json:"base_url"`
+		DefaultOptions Options `json:"default_options"`
+	}
+	err := json.Unmarshal(bytes, &confWithString)
+	if err != nil {
+		return err
+	}
+	baseURL, err := url.Parse(confWithString.BaseURL)
+	if err != nil {
+		return err
+	}
+
+	conf.BaseURL = baseURL
+	conf.DefaultOptions = confWithString.DefaultOptions
+	return nil
+}
+
 // Options specifies transformations to be performed on the requested image.
 type Options struct {
 	// Make sure Options never has pointer members. The config parsing depends on that.
@@ -81,32 +109,9 @@ type Options struct {
 	SmartCrop bool `json:"smart_crop"`
 }
 
-type SourceConfiguration struct {
-	BaseURL        *url.URL
-	DefaultOptions Options
-}
 
-func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
-	/*
-		Make it possible to unmarshal bytes into a struct with a *url.URL field by first unmarshaling into
-		a struct without *url.URLs and then parsing the URL.
-	*/
-	var confWithString struct {
-		BaseURL        string  `json:"base_url"`
-		DefaultOptions Options `json:"default_options"`
-	}
-	err := json.Unmarshal(bytes, &confWithString)
-	if err != nil {
-		return err
-	}
-	baseURL, err := url.Parse(confWithString.BaseURL)
-	if err != nil {
-		return err
 	}
 
-	conf.BaseURL = baseURL
-	conf.DefaultOptions = confWithString.DefaultOptions
-	return nil
 }
 
 func (o Options) String() string {
