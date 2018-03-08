@@ -62,6 +62,15 @@ func TestParseFormValues(t *testing.T) {
 		{"size=1", Options{Width: 1, Height: 1, Fit: true}},
 		{"size=0.1", Options{Width: 0.1, Height: 0.1, Fit: true}},
 
+		// sizes with dpr
+		{"width=1&dpr=3", Options{Width: 3}},
+		{"height=1&dpr=3", Options{Height: 3}},
+		{"width=1&height=2&dpr=3", Options{Width: 3, Height: 6, Fit: true}},
+		{"width=-1&height=-2&dpr=3", Options{Width: -3, Height: -6}},
+		{"width=0.1&height=0.2&dpr=3", Options{Width: 0.3, Height: 0.6, Fit: true}},
+		{"size=1&dpr=3", Options{Width: 3, Height: 3, Fit: true}},
+		{"size=0.1&dpr=3", Options{Width: 0.3, Height: 0.3, Fit: true}},
+
 		// additional flags
 		{"mode=fit", Options{Fit: true}},
 		{"rotate=90", Options{Rotate: 90}},
@@ -94,7 +103,7 @@ func TestParseFormValues(t *testing.T) {
 			panic(err)
 		}
 
-		if got, want := ParseFormValues(input, Options{}), tt.Options; got != want {
+		if got, want := ParseFormValues(input, Options{}), tt.Options; !got.Equal(want) {
 			t.Errorf("ParseFormValues(%q) returned %#v, want %#v", tt.InputQS, got, want)
 		}
 	}
