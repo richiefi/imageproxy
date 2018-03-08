@@ -57,7 +57,7 @@ type Proxy struct {
 // NewProxy constructs a new proxy.  The provided http RoundTripper will be
 // used to fetch remote URLs.  If nil is provided, http.DefaultTransport will
 // be used.
-func NewProxy(transport http.RoundTripper, cache Cache, logger *zap.SugaredLogger) *Proxy {
+func NewProxy(transport http.RoundTripper, cache Cache, maxConcurrency int, logger *zap.SugaredLogger) *Proxy {
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
@@ -70,12 +70,15 @@ func NewProxy(transport http.RoundTripper, cache Cache, logger *zap.SugaredLogge
 		logger: logger,
 	}
 
+	pool := make(chan bool, maxConcurrency)
+
 	client := new(http.Client)
 	client.Transport = &httpcache.Transport{
 		Transport: &TransformingTransport{
 			Transport:     transport,
 			CachingClient: client,
 			logger:        logger,
+			pool:          pool,
 		},
 		Cache:               cache,
 		MarkCachedResponses: true,
@@ -295,6 +298,8 @@ type TransformingTransport struct {
 	CachingClient *http.Client
 
 	logger *zap.SugaredLogger
+
+	pool chan bool
 }
 
 // RoundTrip implements the http.RoundTripper interface.
@@ -342,6 +347,19 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	if should304(req, resp) {
 		// bare 304 response, full response will be used from cache
 		return &http.Response{StatusCode: http.StatusNotModified}, nil
+	}
+
+	/*
+		Limit concurrency of memory-intensive operations. Writing to a channel with a full buffer blocks...
+		so the following will limit the concurrency based on the buffer pool size.
+
+		Note that if the channel is nil this will deadlock, so the nil check is absolutely mandatory.
+	*/
+	if t.pool != nil {
+		t.pool <- true
+		defer func() { <-t.pool }() // unblock one writer eventually
+	} else {
+		t.logger.Infow("t.pool is nil, bad initialization?")
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)

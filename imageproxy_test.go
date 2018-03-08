@@ -138,7 +138,8 @@ func TestAllowed(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		p := NewProxy(nil, nil, logger())
+		maxConcurrency := 8
+		p := NewProxy(nil, nil, maxConcurrency, logger())
 		p.Whitelist = tt.whitelist
 		p.SignatureKey = tt.key
 		p.Referrers = tt.referrers
