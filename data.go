@@ -248,6 +248,10 @@ func (o Options) transform() bool {
 // option with only one of either width or height does the same thing as if
 // "fit" had not been specified.
 //
+// Device pixel ratio
+//
+// If "dpr={ratio}" is specified, the dimensions are multiplied by it.
+//
 // Rotation and Flips
 //
 // The "r={degrees}" option will rotate the image the specified number of
@@ -278,22 +282,25 @@ func (o Options) transform() bool {
 // Examples
 //
 // 	size=0                  - no resizing
-// 	width=200               - 200 pixels wide, proportional height
+// 	width=200               - 200 points wide, device pixel ratio 1 --> 200px, proportional height
+// 	width=200&dpr=2         - 200 points wide, device pixel ratio 2 --> 400px, proportional height
 // 	height=0.15             - 15% original height, proportional width
 // 	width=100&height=150    - 100 by 150 pixels, cropping as needed
-// 	size=100                - 100 pixels square, cropping as needed
-// 	size=150,mode=fit       - scale to fit 150 pixels square, no cropping
-// 	size=100,rotate=90      - 100 pixels square, rotated 90 degrees
-// 	size=100,flip=v,flip=h  - 100 pixels square, flipped horizontal and vertical
-// 	width=200,quality=60    - 200 pixels wide, proportional height, 60% quality
-// 	width=200,format=png    - 200 pixels wide, converted to PNG format
-// 	crop=0,0,100,100        - crop image to 100px square, starting at (0,0)
-// 	crop=10,20,100,200      - crop image starting at (10,20) is 100px wide and 200px tall
+// 	size=100                - 100 points square, cropping as needed
+// 	size=150&mode=fit       - scale to fit 150 pixels square, no cropping
+// 	size=100&rotate=90      - 100 points square, rotated 90 degrees
+// 	size=100&flip=v&flip=h  - 100 points square, flipped horizontal and vertical
+// 	width=200&quality=60    - 200 points wide, proportional height, 60% quality
+// 	width=200&format=png    - 200 points wide, converted to PNG format
+// 	crop=0,0,100,100        - crop image to 100pt square, starting at (0,0)
+// 	crop=10,20,100,200      - crop image starting at (10,20) is 100pt wide and 200pt tall
 func ParseFormValues(form url.Values, defaultOptions Options) Options {
 	// This should make a copy, since we are dealing with structs, not pointers, and Options does not have pointer members.
 	options := defaultOptions
 
 	modeSeen := false
+
+	dpr := 1.0
 
 	for key, values := range form {
 		for _, value := range values {
@@ -346,7 +353,13 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 					options.Width = size
 					options.Height = size
 				}
+			case "dpr":
+				dprCandidate, err := strconv.ParseFloat(value, 64)
+				if err == nil && dprCandidate > 0.0 {
+					dpr = dprCandidate
+				}
 			}
+
 		}
 	}
 
@@ -358,6 +371,16 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 	if !modeSeen && options.Width > 0 && options.Height > 0 {
 		options.Fit = true
 	}
+
+	/*
+		Apply DPR to the otherwise final dimensions. It is always positive.
+	*/
+	options.Width *= dpr
+	options.Height *= dpr
+	options.CropX *= dpr
+	options.CropY *= dpr
+	options.CropWidth *= dpr
+	options.CropHeight *= dpr
 
 	return options
 }
