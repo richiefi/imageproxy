@@ -3,6 +3,7 @@ package imageproxy
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -109,9 +110,28 @@ type Options struct {
 	SmartCrop bool `json:"smart_crop"`
 }
 
+func (o Options) Equal(other Options) bool {
+	const delta = 0.0001
 
+	eq := func(a, b float64) bool {
+		return math.Abs(a-b) < delta
 	}
 
+	return o.Fit == other.Fit &&
+		o.FlipVertical == other.FlipVertical &&
+		o.FlipHorizontal == other.FlipHorizontal &&
+		o.ScaleUp == other.ScaleUp &&
+		o.SmartCrop == other.SmartCrop &&
+		o.Rotate == other.Rotate &&
+		o.Quality == other.Quality &&
+		o.Signature == other.Signature &&
+		o.Format == other.Format &&
+		eq(o.Width, other.Width) &&
+		eq(o.Height, other.Height) &&
+		eq(o.CropX, other.CropX) &&
+		eq(o.CropY, other.CropY) &&
+		eq(o.CropWidth, other.CropWidth) &&
+		eq(o.CropHeight, other.CropHeight)
 }
 
 func (o Options) String() string {
