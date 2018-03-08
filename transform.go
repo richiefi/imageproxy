@@ -38,27 +38,26 @@ func Transform(img []byte, opt Options) ([]byte, error) {
 	}
 
 	// decode image
-	m, format, err := image.Decode(bytes.NewReader(img))
+	m, srcFormat, err := image.Decode(bytes.NewReader(img))
 	if err != nil {
 		return nil, err
 	}
 
 	// apply EXIF orientation for jpeg and tiff source images. Read at most
 	// up to maxExifSize looking for EXIF tags.
-	if format == "jpeg" || format == "tiff" {
+	if srcFormat == "jpeg" || srcFormat == "tiff" {
 		r := io.LimitReader(bytes.NewReader(img), maxExifSize)
 		if exifOpt := exifOrientation(r); exifOpt.transform() {
 			m = transformImage(m, exifOpt)
 		}
 	}
 
-	// encode webp and tiff as jpeg by default
-	if format == "tiff" || format == "webp" {
-		format = "jpeg"
-	}
-
+	// jpeg shall be the default output format
+	var format string
 	if opt.Format != "" {
 		format = opt.Format
+	} else {
+		format = "jpeg"
 	}
 
 	// transform and encode image
