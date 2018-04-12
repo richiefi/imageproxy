@@ -14,6 +14,7 @@ import (
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/svkoskin/go-libjpeg/jpeg"
 	"github.com/svkoskin/smartcrop"
+	"github.com/svkoskin/smartcrop/nfnt"
 	"golang.org/x/image/tiff"   // register tiff format
 	_ "golang.org/x/image/webp" // register webp format
 	"willnorris.com/go/gifresize"
@@ -163,7 +164,10 @@ func cropParams(m image.Image, opt Options) image.Rectangle {
 	if opt.SmartCrop {
 		w := evaluateFloat(opt.Width, imgW)
 		h := evaluateFloat(opt.Height, imgH)
-		r, err := smartcrop.SmartCrop(m, w, h)
+
+		cropAnalyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
+
+		r, err := cropAnalyzer.FindBestCrop(m, w, h)
 		if err == nil {
 			return r
 		}
