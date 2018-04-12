@@ -112,6 +112,10 @@ func main() {
 	p.Timeout = *timeout
 	p.ScaleUp = *scaleUp
 
+	if os.Getenv("CASCADE_XML_PATH") == "" {
+		logger.Warnw("'CASCADE_XML_PATH' is not set. Face detection disabled.")
+	}
+
 	server := &http.Server{
 		Addr:    *addr,
 		Handler: p,

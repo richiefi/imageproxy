@@ -9,11 +9,13 @@ import (
 	"image/png"
 	"io"
 	"math"
+	"os"
 
 	"github.com/disintegration/imaging"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/svkoskin/go-libjpeg/jpeg"
 	"github.com/svkoskin/smartcrop"
+	smartcropGocv "github.com/svkoskin/smartcrop/gocv"
 	"github.com/svkoskin/smartcrop/nfnt"
 	"golang.org/x/image/tiff"   // register tiff format
 	_ "golang.org/x/image/webp" // register webp format
@@ -165,7 +167,21 @@ func cropParams(m image.Image, opt Options) image.Rectangle {
 		w := evaluateFloat(opt.Width, imgW)
 		h := evaluateFloat(opt.Height, imgH)
 
+		detectors := make([]smartcrop.Detector, 3)
+
+		// First detector shall be a face detector if cascades are provided, or skin detector if not
+		cascadeXMLPath := os.Getenv("CASCADE_XML_PATH")
+		if cascadeXMLPath != "" {
+			detectors[0] = &smartcropGocv.FaceDetector{cascadeXMLPath, false}
+		} else {
+			detectors[0] = &smartcrop.SkinDetector{}
+		}
+
+		detectors[1] = &smartcrop.EdgeDetector{}
+		detectors[2] = &smartcrop.SaturationDetector{}
+
 		cropAnalyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
+		cropAnalyzer.SetDetectors(detectors)
 
 		r, err := cropAnalyzer.FindBestCrop(m, w, h)
 		if err == nil {
