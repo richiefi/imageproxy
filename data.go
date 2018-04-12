@@ -309,7 +309,7 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 				switch value {
 				case "fit":
 					options.Fit = true
-				case "smartcrop":
+				case "crop", "smartcrop":
 					options.SmartCrop = true
 				}
 				modeSeen = true
