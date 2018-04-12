@@ -11,9 +11,9 @@ import (
 	"math"
 
 	"github.com/disintegration/imaging"
-	"github.com/muesli/smartcrop"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/svkoskin/go-libjpeg/jpeg"
+	"github.com/svkoskin/smartcrop"
 	"golang.org/x/image/tiff"   // register tiff format
 	_ "golang.org/x/image/webp" // register webp format
 	"willnorris.com/go/gifresize"

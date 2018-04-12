@@ -47,3 +47,7 @@
 [[constraint]]
   branch = "master"
   name = "willnorris.com/go/gifresize"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/svkoskin/smartcrop"

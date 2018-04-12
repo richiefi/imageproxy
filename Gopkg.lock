@@ -148,16 +148,6 @@
   revision = "8bdf7d1a087ccc975cf37dd6507da50698fd19ca"
 
 [[projects]]
-  name = "github.com/muesli/smartcrop"
-  packages = ["."]
-  revision = "9032446b30f6284f8718490b6bcff8a1d51173cf"
-
-[[projects]]
-  name = "github.com/nfnt/resize"
-  packages = ["."]
-  revision = "891127d8d1b52734debe1b3c3d7e747502b6c366"
-
-[[projects]]
   branch = "master"
   name = "github.com/petar/GoLLRB"
   packages = ["llrb"]
@@ -191,6 +181,15 @@
     "rgb"
   ]
   revision = "f5e7749c1ab5e13b209ab2eaaa2e17b6eeee7045"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/svkoskin/smartcrop"
+  packages = [
+    ".",
+    "options"
+  ]
+  revision = "96dc0c110cc4e1904154531dd5bf21435fcc94f3"
 
 [[projects]]
   name = "go.uber.org/atomic"
@@ -353,6 +352,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "29408c8feecc6c04ddcd53b2a6ae514c45a433695ed0ec6533edd200d1688066"
+  inputs-digest = "0465aa5bdb162c592298b587f75dcd73e834891cd8e54a15e406fa03a6fe4bc5"
   solver-name = "gps-cdcl"
   solver-version = 1
