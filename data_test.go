@@ -71,6 +71,10 @@ func TestParseFormValues(t *testing.T) {
 		{"size=1&dpr=3", Options{Width: 3, Height: 3, Fit: true}},
 		{"size=0.1&dpr=3", Options{Width: 0.3, Height: 0.3, Fit: true}},
 
+		// crop is smart
+		{"mode=crop&size=200", Options{Width: 200, Height: 200, SmartCrop: true}},
+		{"mode=smartcrop&size=200", Options{Width: 200, Height: 200, SmartCrop: true}},
+
 		// additional flags
 		{"mode=fit", Options{Fit: true}},
 		{"rotate=90", Options{Rotate: 90}},
