@@ -104,6 +104,15 @@
   version = "v1.34.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/freetype"
+  packages = [
+    "raster",
+    "truetype"
+  ]
+  revision = "e2365dfdc4a05e4b8299a783240d4a7d5a65d4e4"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -143,9 +152,26 @@
   revision = "0b12d6b5"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/llgcode/draw2d"
+  packages = [
+    ".",
+    "draw2dbase",
+    "draw2dimg",
+    "draw2dkit"
+  ]
+  revision = "274031cf2abe8acd15c4a911e1f7f1295fc4830c"
+
+[[projects]]
   name = "github.com/marstr/guid"
   packages = ["."]
   revision = "8bdf7d1a087ccc975cf37dd6507da50698fd19ca"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/nfnt/resize"
+  packages = ["."]
+  revision = "83c6a9932646f83e3267f353373d47347b6036b2"
 
 [[projects]]
   branch = "master"
@@ -187,6 +213,8 @@
   name = "github.com/svkoskin/smartcrop"
   packages = [
     ".",
+    "gocv",
+    "nfnt",
     "options"
   ]
   revision = "96dc0c110cc4e1904154531dd5bf21435fcc94f3"
@@ -215,11 +243,19 @@
   revision = "f85c78b1dd998214c5f2138155b320a4a43fbe36"
 
 [[projects]]
+  name = "gocv.io/x/gocv"
+  packages = ["."]
+  revision = "ab6d932219faf43e531eea89ef3496cdb67aa734"
+  version = "0.11.0"
+
+[[projects]]
   name = "golang.org/x/image"
   packages = [
     "bmp",
     "draw",
+    "font",
     "math/f64",
+    "math/fixed",
     "riff",
     "tiff",
     "tiff/lzw",
@@ -352,6 +388,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0465aa5bdb162c592298b587f75dcd73e834891cd8e54a15e406fa03a6fe4bc5"
+  inputs-digest = "e0d59a1ad06812bc0e22ff2b8ef7022a942b29ae10a5d93fee2467238aad1ce9"
   solver-name = "gps-cdcl"
   solver-version = 1
