@@ -155,7 +155,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 		"from cache", cached == "1",
 	)
 
-	copyHeader(w.Header(), resp.Header, "Cache-Control", "Last-Modified", "Expires", "Etag", "Link")
+	copyHeader(w.Header(), resp.Header, "Cache-Control", "Last-Modified", "Expires", "Link")
 
 	// Set Cache-Tag values to make it possible to detect and purge responses created by this app
 	resp.Header.Set("Cache-Tag", cacheTags)
