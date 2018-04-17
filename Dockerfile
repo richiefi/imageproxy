@@ -11,7 +11,7 @@ ENV CGO_LDFLAGS -L/usr/local/lib -lopencv_core -lopencv_face -lopencv_videoio -l
 
 RUN apk add --update autoconf automake build-base libtool nasm git
 RUN ./build-mozjpeg.sh
-RUN go install github.com/richiefi/imageproxy/cmd/imageproxy
+RUN go install -ldflags="-X github.com/richiefi/imageproxy.buildVersion=`date +%s`" github.com/richiefi/imageproxy/cmd/imageproxy
 
 FROM alpine:3.7
 RUN apk add --update ca-certificates libstdc++

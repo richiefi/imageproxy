@@ -26,7 +26,7 @@ import (
 const cacheTags = "imageproxy,imageproxy-1"
 
 // Overridden in prod by linker
-const proxyVersion = "dev"
+var buildVersion = "dev"
 
 // Proxy serves image requests.
 type Proxy struct {
@@ -62,6 +62,10 @@ type Proxy struct {
 // used to fetch remote URLs.  If nil is provided, http.DefaultTransport will
 // be used.
 func NewProxy(transport http.RoundTripper, cache Cache, maxConcurrency int, logger *zap.SugaredLogger) *Proxy {
+	logger.Infow("Initializing imageproxy",
+		"buildVersion", buildVersion,
+	)
+
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
