@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/hmac"
+	"crypto/md5"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
@@ -23,6 +24,9 @@ import (
 )
 
 const cacheTags = "imageproxy,imageproxy-1"
+
+// Overridden in prod by linker
+const proxyVersion = "dev"
 
 // Proxy serves image requests.
 type Proxy struct {
@@ -160,15 +164,25 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	// Set Cache-Tag values to make it possible to detect and purge responses created by this app
 	resp.Header.Set("Cache-Tag", cacheTags)
 
-	if should304(r, resp) {
-		w.WriteHeader(http.StatusNotModified)
-		return
+	// Enable CORS for 3rd party applications
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Etag business
+	remoteEtag := resp.Header.Get("Etag")
+	if remoteEtag != "" {
+		responseEtag := semanticEtag(remoteEtag, req.Options)
+		etagHeader := fmt.Sprintf(`W/"%s"`, responseEtag)
+
+		w.Header().Set("ETag", etagHeader)
+
+		if should304(r, responseEtag) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 	}
 
+	// Move on with other-than-304 response
 	copyHeader(w.Header(), resp.Header, "Content-Length", "Content-Type")
-
-	//Enable CORS for 3rd party applications
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
@@ -189,6 +203,12 @@ func copyHeader(dst, src http.Header, keys ...string) {
 			dst.Add(k, v)
 		}
 	}
+}
+
+func semanticEtag(remoteEtag string, options Options) string {
+	h := md5.New()
+	fmt.Fprintf(h, "%s%s%s", remoteEtag, options.String())
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 // allowed determines whether the specified request contains an allowed
@@ -257,30 +277,26 @@ func validSignature(key []byte, r *Request) bool {
 	return hmac.Equal(got, want)
 }
 
-// should304 returns whether we should send a 304 Not Modified in response to
-// req, based on the response resp.  This is determined using the last modified
-// time and the entity tag of resp.
-func should304(req *http.Request, resp *http.Response) bool {
-	// TODO(willnorris): if-none-match header can be a comma separated list
-	// of multiple tags to be matched, or the special value "*" which
-	// matches all etags
-	etag := resp.Header.Get("Etag")
-	if etag != "" && etag == req.Header.Get("If-None-Match") {
-		return true
-	}
-
-	lastModified, err := time.Parse(time.RFC1123, resp.Header.Get("Last-Modified"))
-	if err != nil {
+func should304(req *http.Request, responseEtag string) bool {
+	if responseEtag == "" {
 		return false
 	}
-	ifModSince, err := time.Parse(time.RFC1123, req.Header.Get("If-Modified-Since"))
-	if err != nil {
+
+	ifNoneMatch := req.Header.Get("If-None-Match")
+	if ifNoneMatch == "" {
 		return false
 	}
-	if lastModified.Before(ifModSince) || lastModified.Equal(ifModSince) {
-		return true
-	}
 
+	candidates := strings.Split(ifNoneMatch, ",")
+	for _, candidate := range candidates {
+		stripped := strings.TrimSpace(candidate)
+		stripped = strings.TrimPrefix(stripped, "W/")
+		stripped = strings.Trim(stripped, `"`)
+
+		if stripped == responseEtag {
+			return true
+		}
+	}
 	return false
 }
 
@@ -344,7 +360,9 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		return nil, fmt.Errorf("unexpected status code %d from upstream", resp.StatusCode)
 	}
 
-	if should304(req, resp) {
+	responseEtag := resp.Header.Get("ETag")
+
+	if should304(req, responseEtag) {
 		// bare 304 response, full response will be used from cache
 		return &http.Response{StatusCode: http.StatusNotModified}, nil
 	}
