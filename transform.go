@@ -186,6 +186,8 @@ func cropParams(m image.Image, opt Options) image.Rectangle {
 		r, err := cropAnalyzer.FindBestCrop(m, w, h)
 		if err == nil {
 			return r
+		} else {
+			fmt.Printf("Smartcrop returned an error: %s\n", err.Error())
 		}
 	}
 
