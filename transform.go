@@ -172,12 +172,12 @@ func cropParams(m image.Image, opt Options) image.Rectangle {
 		// First detector shall be a face detector if cascades are provided, or skin detector if not
 		cascadeXMLPath := os.Getenv("CASCADE_XML_PATH")
 		if cascadeXMLPath != "" {
-			detectors[0] = &smartcropGocv.FaceDetector{cascadeXMLPath, false}
+			detectors[1] = &smartcropGocv.FaceDetector{cascadeXMLPath, false}
 		} else {
-			detectors[0] = &smartcrop.SkinDetector{}
+			detectors[1] = &smartcrop.SkinDetector{}
 		}
 
-		detectors[1] = &smartcrop.EdgeDetector{}
+		detectors[0] = &smartcrop.EdgeDetector{}
 		detectors[2] = &smartcrop.SaturationDetector{}
 
 		cropAnalyzer := smartcrop.NewAnalyzer(nfnt.NewDefaultResizer())
