@@ -211,7 +211,7 @@ func copyHeader(dst, src http.Header, keys ...string) {
 
 func semanticEtag(remoteEtag string, options Options) string {
 	h := md5.New()
-	fmt.Fprintf(h, "%s%s%s", remoteEtag, options.String())
+	fmt.Fprintf(h, "%s%s%s", remoteEtag, options.String(), buildVersion)
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
