@@ -16,6 +16,7 @@ import (
 	"github.com/svkoskin/go-libjpeg/jpeg"
 	"github.com/svkoskin/smartcrop"
 	smartcropGocv "github.com/svkoskin/smartcrop/gocv"
+	smartcropLogger "github.com/svkoskin/smartcrop/logger"
 	"github.com/svkoskin/smartcrop/nfnt"
 	"golang.org/x/image/tiff"   // register tiff format
 	_ "golang.org/x/image/webp" // register webp format
@@ -172,7 +173,7 @@ func cropParams(m image.Image, opt Options) image.Rectangle {
 		// First detector shall be a face detector if cascades are provided, or skin detector if not
 		cascadeXMLPath := os.Getenv("CASCADE_XML_PATH")
 		if cascadeXMLPath != "" {
-			detectors[1] = &smartcropGocv.FaceDetector{cascadeXMLPath, false}
+			detectors[1] = &smartcropGocv.FaceDetector{cascadeXMLPath, &smartcropLogger.Logger{}}
 		} else {
 			detectors[1] = &smartcrop.SkinDetector{}
 		}
