@@ -214,10 +214,11 @@
   packages = [
     ".",
     "gocv",
+    "logger",
     "nfnt",
     "options"
   ]
-  revision = "96dc0c110cc4e1904154531dd5bf21435fcc94f3"
+  revision = "0899eab81eb62f24e1727a998824964bf1c74301"
 
 [[projects]]
   name = "go.uber.org/atomic"

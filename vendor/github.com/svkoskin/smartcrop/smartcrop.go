@@ -40,6 +40,7 @@ import (
 	"math"
 	"time"
 
+	sclogger "github.com/svkoskin/smartcrop/logger"
 	"github.com/svkoskin/smartcrop/options"
 
 	"golang.org/x/image/draw"
@@ -53,6 +54,7 @@ var (
 )
 
 const (
+	middleBias              = 0.0004
 	detailWeight            = 0.2
 	skinBias                = 0.9
 	skinBrightnessMin       = 0.2
@@ -97,12 +99,6 @@ type Crop struct {
 	Score Score
 }
 
-// Logger contains a logger.
-type Logger struct {
-	DebugMode bool
-	Log       *log.Logger
-}
-
 /*
 	Detector contains a method that detects either skin, features or saturation. Its Detect method writes
 	the detected skin, features or saturation to red, green and blue channels, respectively.
@@ -114,13 +110,13 @@ type Detector interface {
 
 type smartcropAnalyzer struct {
 	detectors []Detector
-	logger    Logger
+	logger    sclogger.Logger
 	options.Resizer
 }
 
 // NewAnalyzer returns a new Analyzer using the given Resizer.
 func NewAnalyzer(resizer options.Resizer) Analyzer {
-	logger := Logger{
+	logger := sclogger.Logger{
 		DebugMode: false,
 	}
 
@@ -128,7 +124,7 @@ func NewAnalyzer(resizer options.Resizer) Analyzer {
 }
 
 // NewAnalyzerWithLogger returns a new analyzer with the given Resizer and Logger.
-func NewAnalyzerWithLogger(resizer options.Resizer, logger Logger) Analyzer {
+func NewAnalyzerWithLogger(resizer options.Resizer, logger sclogger.Logger) Analyzer {
 	if logger.Log == nil {
 		logger.Log = log.New(ioutil.Discard, "", 0)
 	}
@@ -272,7 +268,7 @@ func score(output *image.RGBA, crop Crop) Score {
 	return score
 }
 
-func analyse(logger Logger, detectors []Detector, img *image.RGBA, cropWidth, cropHeight, realMinScale float64) (image.Rectangle, error) {
+func analyse(logger sclogger.Logger, detectors []Detector, img *image.RGBA, cropWidth, cropHeight, realMinScale float64) (image.Rectangle, error) {
 	o := image.NewRGBA(img.Bounds())
 
 	/*
@@ -290,8 +286,13 @@ func analyse(logger Logger, detectors []Detector, img *image.RGBA, cropWidth, cr
 	}
 
 	now := time.Now()
-	var topCrop Crop
-	topScore := -1.0
+
+	// Favor cropping from the middle a bit - sometimes the photographers know what they are doing
+	topCrop := middleCrop(o, cropWidth, cropHeight)
+	topCrop.Score = score(o, topCrop)
+	topScore := topCrop.totalScore() + middleBias
+
+	// Then try the fancy things without that kind of bias
 	cs := crops(o, cropWidth, cropHeight, realMinScale)
 	logger.Log.Println("Time elapsed crops:", time.Since(now), len(cs))
 
@@ -471,6 +472,33 @@ func (d *SaturationDetector) Detect(i *image.RGBA, o *image.RGBA) error {
 		}
 	}
 	return nil
+}
+
+func middleCrop(i image.Image, cropWidth, cropHeight float64) Crop {
+	width := i.Bounds().Dx()
+	height := i.Bounds().Dy()
+
+	minDimension := math.Min(float64(width), float64(height))
+	var cropW, cropH float64
+
+	if cropWidth != 0.0 {
+		cropW = cropWidth
+	} else {
+		cropW = minDimension
+	}
+	if cropHeight != 0.0 {
+		cropH = cropHeight
+	} else {
+		cropH = minDimension
+	}
+
+	scale := maxScale
+	y := float64(height)*0.5 - cropH*scale*0.5
+	x := float64(width)*0.5 - cropW*scale*0.5
+
+	return Crop{
+		Rectangle: image.Rect(int(x), int(y), int(x)+int(cropW*scale), int(y)+int(cropH*scale)),
+	}
 }
 
 func crops(i image.Image, cropWidth, cropHeight, realMinScale float64) []Crop {
