@@ -212,59 +212,35 @@ func TestValidSignature(t *testing.T) {
 
 func TestShould304(t *testing.T) {
 	tests := []struct {
-		req, resp string
-		is304     bool
+		req      string
+		respEtag string
+		is304    bool
 	}{
 		{ // etag match
 			"GET / HTTP/1.1\nIf-None-Match: \"v\"\n\n",
-			"HTTP/1.1 200 OK\nEtag: \"v\"\n\n",
-			true,
-		},
-		{ // last-modified before
-			"GET / HTTP/1.1\nIf-Modified-Since: Sun, 02 Jan 2000 00:00:00 GMT\n\n",
-			"HTTP/1.1 200 OK\nLast-Modified: Sat, 01 Jan 2000 00:00:00 GMT\n\n",
-			true,
-		},
-		{ // last-modified match
-			"GET / HTTP/1.1\nIf-Modified-Since: Sat, 01 Jan 2000 00:00:00 GMT\n\n",
-			"HTTP/1.1 200 OK\nLast-Modified: Sat, 01 Jan 2000 00:00:00 GMT\n\n",
+			`"v"`,
 			true,
 		},
 
 		// mismatches
 		{
 			"GET / HTTP/1.1\n\n",
-			"HTTP/1.1 200 OK\n\n",
+			"",
 			false,
 		},
 		{
 			"GET / HTTP/1.1\n\n",
-			"HTTP/1.1 200 OK\nEtag: \"v\"\n\n",
+			`"v"`,
 			false,
 		},
 		{
 			"GET / HTTP/1.1\nIf-None-Match: \"v\"\n\n",
-			"HTTP/1.1 200 OK\n\n",
+			"",
 			false,
 		},
 		{
 			"GET / HTTP/1.1\nIf-None-Match: \"a\"\n\n",
-			"HTTP/1.1 200 OK\nEtag: \"b\"\n\n",
-			false,
-		},
-		{ // last-modified match
-			"GET / HTTP/1.1\n\n",
-			"HTTP/1.1 200 OK\nLast-Modified: Sat, 01 Jan 2000 00:00:00 GMT\n\n",
-			false,
-		},
-		{ // last-modified match
-			"GET / HTTP/1.1\nIf-Modified-Since: Sun, 02 Jan 2000 00:00:00 GMT\n\n",
-			"HTTP/1.1 200 OK\n\n",
-			false,
-		},
-		{ // last-modified match
-			"GET / HTTP/1.1\nIf-Modified-Since: Fri, 31 Dec 1999 00:00:00 GMT\n\n",
-			"HTTP/1.1 200 OK\nLast-Modified: Sat, 01 Jan 2000 00:00:00 GMT\n\n",
+			`"b"`,
 			false,
 		},
 	}
@@ -276,14 +252,8 @@ func TestShould304(t *testing.T) {
 			t.Errorf("http.ReadRequest(%q) returned error: %v", tt.req, err)
 		}
 
-		buf = bufio.NewReader(strings.NewReader(tt.resp))
-		resp, err := http.ReadResponse(buf, req)
-		if err != nil {
-			t.Errorf("http.ReadResponse(%q) returned error: %v", tt.resp, err)
-		}
-
-		if got, want := should304(req, resp), tt.is304; got != want {
-			t.Errorf("should304(%q, %q) returned: %v, want %v", tt.req, tt.resp, got, want)
+		if got, want := should304(req, tt.respEtag), tt.is304; got != want {
+			t.Errorf("should304(%q, %q) returned: %v, want %v", tt.req, tt.respEtag, got, want)
 		}
 	}
 }
@@ -354,28 +324,6 @@ func TestProxy_ServeHTTP(t *testing.T) {
 		if got, want := resp.Code, tt.code; got != want {
 			t.Errorf("ServeHTTP(%v) returned status %d, want %d", req, got, want)
 		}
-	}
-}
-
-// test that 304 Not Modified responses are returned properly.
-func TestProxy_ServeHTTP_is304(t *testing.T) {
-	p := &Proxy{
-		Client: &http.Client{
-			Transport: testTransport{},
-		},
-		logger: logger(),
-	}
-
-	req, _ := http.NewRequest("GET", "http://localhost/http://good.test/etag", nil)
-	req.Header.Add("If-None-Match", `"tag"`)
-	resp := httptest.NewRecorder()
-	p.ServeHTTP(resp, req)
-
-	if got, want := resp.Code, http.StatusNotModified; got != want {
-		t.Errorf("ServeHTTP(%v) returned status %d, want %d", req, got, want)
-	}
-	if got, want := resp.Header().Get("Etag"), `"tag"`; got != want {
-		t.Errorf("ServeHTTP(%v) returned etag header %v, want %v", req, got, want)
 	}
 }
 
