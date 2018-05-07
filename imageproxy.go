@@ -295,7 +295,6 @@ func should304(req *http.Request, responseEtag string) bool {
 	for _, candidate := range candidates {
 		stripped := strings.TrimSpace(candidate)
 		stripped = strings.TrimPrefix(stripped, "W/")
-		stripped = strings.Trim(stripped, `"`)
 
 		if stripped == responseEtag {
 			return true
