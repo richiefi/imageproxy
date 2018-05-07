@@ -93,6 +93,7 @@ func NewProxy(transport http.RoundTripper, cache Cache, maxConcurrency int, logg
 	}
 
 	proxy.Client = client
+	proxy.Client.Timeout = 10 * time.Second
 
 	return proxy
 }
