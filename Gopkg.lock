@@ -206,7 +206,7 @@
     "jpeg",
     "rgb"
   ]
-  revision = "f5e7749c1ab5e13b209ab2eaaa2e17b6eeee7045"
+  revision = "70c8b83ed7e0c5b8e807cf4e0e9b8e4e20082bb3"
 
 [[projects]]
   branch = "master"
@@ -389,6 +389,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e0d59a1ad06812bc0e22ff2b8ef7022a942b29ae10a5d93fee2467238aad1ce9"
+  inputs-digest = "380f1c05f050a80aef7d81ea947a3c64d4f76a32338c8a491aa80d9183d513bf"
   solver-name = "gps-cdcl"
   solver-version = 1
