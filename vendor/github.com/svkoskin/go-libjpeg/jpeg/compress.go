@@ -26,6 +26,13 @@ static void destroy_compress(struct jpeg_compress_struct *cinfo) {
 	free(cinfo);
 }
 
+static void jpeg_set_dc_scan_opt_mode(j_compress_ptr cinfo, int value) {
+#ifdef JPEG_C_PARAM_SUPPORTED
+	// Use mozjpeg's extension framework to configure the mozjpeg-specific DC scan optimization
+	jpeg_c_set_int_param(cinfo, JINT_DC_SCAN_OPT_MODE, value);
+#endif
+}
+
 static void encode_gray(j_compress_ptr cinfo, JSAMPROW pix, int stride) {
 	// Allocate JSAMPIMAGE to hold pointers to one iMCU worth of image data
 	// this is a safe overestimate; we use the return value from
@@ -266,6 +273,23 @@ func setupEncoderOptions(cinfo *C.struct_jpeg_compress_struct, opt *EncoderOptio
 		cinfo.optimize_coding = C.FALSE
 	}
 	if opt.ProgressiveMode {
+		/*
+			mozjpeg by default optimizes placing DC coefficients for different channels (Y/Cb/Cr) on the same block to
+			different scans. That is somewhat incompatible with some JPEG decoders (the previous syntax for controlling
+			the optimization on mozjpeg's cjpeg command even warned about that), and it seems to make it impossible to read
+			the resulting JPEGs region-by-region on Android 5.0.
+
+			By setting DC scan mode to 0 (default is 1), mozjpeg places all the DC coefficients of the same block to
+			the same scan, which is more compatible.
+
+			Apparently the tradeoff is that while using the DC scan optimization, luma channel values for blocks may be
+			used earlier in the rendering process (and shape of objects can be seen earlier, though with wrong colors).
+
+			This has to be called before jpeg_simple_progression, otherwise mozjpeg uses inappropriate scan script corrupting
+			the resulting JPEG.
+		*/
+		C.jpeg_set_dc_scan_opt_mode(cinfo, 0)
+
 		C.jpeg_simple_progression(cinfo)
 	}
 	cinfo.dct_method = C.J_DCT_METHOD(opt.DCTMethod)

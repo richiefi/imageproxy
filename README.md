@@ -269,7 +269,7 @@ Homebrew on macOS provides `libjpeg-turbo` and `opencv`. They can be used in the
 export CGO_CPPFLAGS="-I/usr/local/Cellar/opencv/3.4.1_2/include -I/usr/local/Cellar/opencv/3.4.1_2/include/opencv2"
 export CGO_CXXFLAGS="--std=c++1z -stdlib=libc++"
 export CGO_CFLAGS="-I/usr/local/opt/jpeg-turbo/include"
-export CGO_LDFLAGS="-L/usr/local/Cellar/opencv/3.4.1_2/lib -lopencv_core -lopencv_face -lopencv_videoio -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lopencv_objdetect -lopencv_features2d -lopencv_video -lopencv_dnn -lopencv_xfeatures2d -lopencv_plot -lopencv_tracking-L/usr/local/opt/jpeg-turbo/lib"
+export CGO_LDFLAGS="-L/usr/local/Cellar/opencv/3.4.1_2/lib -lopencv_core -lopencv_face -lopencv_videoio -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lopencv_objdetect -lopencv_features2d -lopencv_video -lopencv_dnn -lopencv_xfeatures2d -lopencv_plot -lopencv_tracking -L/usr/local/opt/jpeg-turbo/lib"
 go install github.com/richiefi/imageproxy/cmd/imageproxy
 imageproxy
 ```
