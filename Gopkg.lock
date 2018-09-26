@@ -37,6 +37,16 @@
   revision = "3c249a3ba78867d6f4e2fc7f5264145ffb5dd0d9"
 
 [[projects]]
+  name = "github.com/aws/aws-lambda-go"
+  packages = [
+    "lambda",
+    "lambda/messages",
+    "lambdacontext"
+  ]
+  revision = "2d482ef09017ae953b1e8d5a6ddac5b696663a3c"
+  version = "v1.6.0"
+
+[[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -57,11 +67,15 @@
     "aws/signer/v4",
     "internal/shareddefaults",
     "private/protocol",
+    "private/protocol/json/jsonutil",
+    "private/protocol/jsonrpc",
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
+    "private/protocol/restjson",
     "private/protocol/restxml",
     "private/protocol/xml/xmlutil",
+    "service/lambda",
     "service/s3",
     "service/sts"
   ]
@@ -389,6 +403,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "380f1c05f050a80aef7d81ea947a3c64d4f76a32338c8a491aa80d9183d513bf"
+  inputs-digest = "9b9011072e31e71005ed40ec3253439e8285aa270a9acb375e83dff6cb1ba9f8"
   solver-name = "gps-cdcl"
   solver-version = 1
