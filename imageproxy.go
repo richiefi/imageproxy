@@ -11,7 +11,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -78,15 +77,10 @@ func NewProxy(transport http.RoundTripper, cache Cache, maxConcurrency int, logg
 		logger: logger,
 	}
 
-	pool := make(chan bool, maxConcurrency)
-
 	client := new(http.Client)
 	client.Transport = &httpcache.Transport{
 		Transport: &TransformingTransport{
-			Transport:     transport,
-			CachingClient: client,
-			logger:        logger,
-			pool:          pool,
+			logger: logger,
 		},
 		Cache:               cache,
 		MarkCachedResponses: true,
@@ -308,31 +302,12 @@ func should304(req *http.Request, responseEtag string) bool {
 // optionally transforms images using the options specified in the request URL
 // fragment.
 type TransformingTransport struct {
-	// Transport is the underlying http.RoundTripper used to satisfy
-	// non-transform requests (those that do not include a URL fragment).
-	Transport http.RoundTripper
-
-	// CachingClient is used to fetch images to be resized.  This client is
-	// used rather than Transport directly in order to ensure that
-	// responses are properly cached.
-	CachingClient *http.Client
-
 	logger *zap.SugaredLogger
-
-	pool chan bool
 }
 
 // RoundTrip implements the http.RoundTripper interface.
 func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var err error
-	if req.URL.Fragment == "" {
-		// normal requests pass through, image transformations are signaled in Fragment at this point
-		t.logger.Debugw("Fetching remote URL",
-			"req.URL", req.URL,
-		)
-
-		return t.Transport.RoundTrip(req)
-	}
 
 	u := *req.URL
 	u.Fragment = ""
@@ -346,85 +321,37 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		)
 	}
 
-	resp, err := t.CachingClient.Get(u.String())
-	if err != nil {
-		t.logger.Warnw("CachingClient returned an error",
-			"u", u,
-			"error", err.Error(),
-		)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// This should have the side effect of not caching errors
-	if resp.StatusCode >= 400 {
-		t.logger.Warnw("Erroneous status code, bail out asap",
-			"resp.StatusCode", resp.StatusCode,
-		)
-		return nil, fmt.Errorf("unexpected status code %d from upstream", resp.StatusCode)
-	}
-
-	responseEtag := resp.Header.Get("ETag")
-
-	if should304(req, responseEtag) {
-		// bare 304 response, full response will be used from cache
-		return &http.Response{StatusCode: http.StatusNotModified}, nil
-	}
-
-	/*
-		Limit concurrency of memory-intensive operations. Writing to a channel with a full buffer blocks...
-		so the following will limit the concurrency based on the buffer pool size.
-
-		Note that if the channel is nil this will deadlock, so the nil check is absolutely mandatory.
-	*/
-	if t.pool != nil {
-		t.pool <- true
-		defer func() { <-t.pool }() // unblock one writer eventually
-	} else {
-		t.logger.Infow("t.pool is nil, bad initialization?")
-	}
-
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.logger.Warnw("Error reading a response",
-			"u", u,
-			"error", err.Error(),
-		)
-		return nil, err
-	}
-
-	err = req.ParseForm()
-	if err != nil {
-		t.logger.Warnw("Error parsing query string",
-			"u", u,
-			"error", err.Error(),
-		)
-		return nil, err
-	}
-
 	opt := ParseOptions(req.URL.Fragment)
 
-	t.logger.Infow("Calling Transform",
+	t.logger.Infow("Calling Transform over Lambda",
 		"options fragment", req.URL.Fragment,
 	)
 
-	img, err := Transform(b, opt)
+	const functionName = "SamisToy"
+	lambdaClient, err := NewLambdaClient(functionName)
+	if err != nil {
+		t.logger.Warnw("Could not initialize Lambda client",
+			"Error", err.Error(),
+		)
+		return nil, err
+	}
+
+	status, img, err := lambdaClient.TransformWithURL(&u, opt)
 	if err != nil {
 		t.logger.Warnw("Error transforming image",
 			"error", err.Error(),
 			"opt", opt,
 		)
-		img = b
+		img = []byte{}
+	}
+
+	if status <= 0 {
+		status = 500
 	}
 
 	// replay response with transformed image and updated content length
 	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "%s %s\n", resp.Proto, resp.Status)
-	resp.Header.WriteSubset(buf, map[string]bool{
-		"Content-Length": true,
-		// exclude Content-Type header if the format may have changed during transformation
-		"Content-Type": opt.Format != "" || resp.Header.Get("Content-Type") == "image/webp" || resp.Header.Get("Content-Type") == "image/tiff",
-	})
+	fmt.Fprintf(buf, "HTTP/1.1 %d\n", status)
 	fmt.Fprintf(buf, "Content-Length: %d\n\n", len(img))
 	buf.Write(img)
 
