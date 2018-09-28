@@ -21,7 +21,9 @@ import (
 	"github.com/gregjones/httpcache"
 	"go.uber.org/zap"
 
+	"github.com/richiefi/imageproxy/options"
 	tphttp "github.com/richiefi/imageproxy/third_party/http"
+	"github.com/richiefi/imageproxy/transform"
 )
 
 const cacheTags = "imageproxy,imageproxy-1"
@@ -212,7 +214,7 @@ func copyHeader(dst, src http.Header, keys ...string) {
 	}
 }
 
-func semanticEtag(remoteEtag string, options Options) string {
+func semanticEtag(remoteEtag string, options options.Options) string {
 	h := md5.New()
 	fmt.Fprintf(h, "%s%s%s", remoteEtag, options.String(), buildVersion)
 	return fmt.Sprintf("%x", h.Sum(nil))
@@ -404,13 +406,13 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		return nil, err
 	}
 
-	opt := ParseOptions(req.URL.Fragment)
+	opt := options.ParseOptions(req.URL.Fragment)
 
 	t.logger.Infow("Calling Transform",
 		"options fragment", req.URL.Fragment,
 	)
 
-	img, err := Transform(b, opt)
+	img, err := transform.Transform(b, opt)
 	if err != nil {
 		t.logger.Warnw("Error transforming image",
 			"error", err.Error(),
