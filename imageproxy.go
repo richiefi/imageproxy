@@ -19,6 +19,7 @@ import (
 	"github.com/gregjones/httpcache"
 	"go.uber.org/zap"
 
+	"github.com/richiefi/imageproxy/options"
 	tphttp "github.com/richiefi/imageproxy/third_party/http"
 )
 
@@ -204,7 +205,7 @@ func copyHeader(dst, src http.Header, keys ...string) {
 	}
 }
 
-func semanticEtag(remoteEtag string, options Options) string {
+func semanticEtag(remoteEtag string, options options.Options) string {
 	h := md5.New()
 	fmt.Fprintf(h, "%s%s%s", remoteEtag, options.String(), buildVersion)
 	return fmt.Sprintf("%x", h.Sum(nil))
@@ -321,7 +322,7 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		)
 	}
 
-	opt := ParseOptions(req.URL.Fragment)
+	opt := options.ParseOptions(req.URL.Fragment)
 
 	t.logger.Infow("Calling Transform over Lambda",
 		"options fragment", req.URL.Fragment,

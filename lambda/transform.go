@@ -8,11 +8,12 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/richiefi/imageproxy"
+	"github.com/richiefi/imageproxy/options"
+	"github.com/richiefi/imageproxy/transform"
 )
 
 type LambdaExecutor interface {
-	DoTransformWithURL(string, imageproxy.Options) (int, []byte, error)
+	DoTransformWithURL(string, options.Options) (int, []byte, error)
 }
 
 type lambdaExecutor struct {
@@ -29,7 +30,7 @@ func NewLambdaExecutor(logger *zap.SugaredLogger) (LambdaExecutor, error) {
 	}, nil
 }
 
-func (ex *lambdaExecutor) DoTransformWithURL(u string, options imageproxy.Options) (int, []byte, error) {
+func (ex *lambdaExecutor) DoTransformWithURL(u string, options options.Options) (int, []byte, error) {
 	logctx := ex.logger.With(
 		"func", "DoTransformWithURL",
 		"u", u,
@@ -74,7 +75,7 @@ func (ex *lambdaExecutor) DoTransformWithURL(u string, options imageproxy.Option
 
 	then = time.Now()
 
-	img, err := imageproxy.Transform(bs, options)
+	img, err := transform.Transform(bs, options)
 	if err != nil {
 		logctx.Warnw("Could not transform",
 			"Error", err.Error(),

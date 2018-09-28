@@ -1,4 +1,4 @@
-package imageproxy
+package transform
 
 import (
 	"bytes"
