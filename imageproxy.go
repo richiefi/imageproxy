@@ -63,7 +63,7 @@ type Proxy struct {
 // NewProxy constructs a new proxy.  The provided http RoundTripper will be
 // used to fetch remote URLs.  If nil is provided, http.DefaultTransport will
 // be used.
-func NewProxy(transport http.RoundTripper, cache Cache, maxConcurrency int, logger *zap.SugaredLogger) *Proxy {
+func NewProxy(transport http.RoundTripper, cache Cache, logger *zap.SugaredLogger) *Proxy {
 	logger.Infow("Initializing imageproxy",
 		"buildVersion", buildVersion,
 	)
