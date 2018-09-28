@@ -39,7 +39,6 @@ var scaleUp = flag.Bool("scaleUp", false, "allow images to scale beyond their or
 var timeout = flag.Duration("timeout", 0, "time limit for requests served by this proxy")
 var verbose = flag.Bool("verbose", false, "print verbose logging messages")
 var version = flag.Bool("version", false, "Deprecated: this flag does nothing")
-var maxConcurrency = flag.Int("maxConcurrency", 16, "Maximum number of concurrent memory-intensive operations")
 
 func init() {
 	flag.Var(&cache, "cache", "location to cache images (see https://github.com/willnorris/imageproxy#cache)")
@@ -62,7 +61,7 @@ func main() {
 
 	logger := buildLogger()
 
-	p := imageproxy.NewProxy(nil, cache.Cache, *maxConcurrency, logger)
+	p := imageproxy.NewProxy(nil, cache.Cache, logger)
 
 	if *whitelist != "" {
 		p.Whitelist = strings.Split(*whitelist, ",")
@@ -111,10 +110,6 @@ func main() {
 
 	p.Timeout = *timeout
 	p.ScaleUp = *scaleUp
-
-	if os.Getenv("CASCADE_XML_PATH") == "" {
-		logger.Warnw("'CASCADE_XML_PATH' is not set. Face detection disabled.")
-	}
 
 	server := &http.Server{
 		Addr:    *addr,
