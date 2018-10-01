@@ -30,6 +30,7 @@ import (
 const defaultMemorySize = 100
 
 var addr = flag.String("addr", "localhost:8080", "TCP address to listen on")
+var lambdaFunctionName = flag.String("lambdaFunctionName", "", "Transforming Lambda function name")
 var whitelist = flag.String("whitelist", "", "comma separated list of allowed remote hosts")
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
 var baseURLConfURL = flag.String("baseURLConfURL", "", "location of json object of url prefixes for this service")
@@ -61,7 +62,11 @@ func main() {
 
 	logger := buildLogger()
 
-	p := imageproxy.NewProxy(nil, cache.Cache, logger)
+	if lambdaFunctionName == nil || *lambdaFunctionName == "" {
+		logger.Fatalw("Flag lambdaFunctionName not set. This version will not work without it.")
+	}
+
+	p := imageproxy.NewProxy(nil, cache.Cache, *lambdaFunctionName, logger)
 
 	if *whitelist != "" {
 		p.Whitelist = strings.Split(*whitelist, ",")
