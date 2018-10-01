@@ -62,6 +62,10 @@ func main() {
 
 	logger := buildLogger()
 
+	if os.Getenv("SENTRY_DSN") == "" {
+		logger.Warnw("SENTRY_DSN is not set")
+	}
+
 	p := imageproxy.NewProxy(nil, cache.Cache, *maxConcurrency, logger)
 
 	if *whitelist != "" {
