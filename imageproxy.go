@@ -84,6 +84,7 @@ func NewProxy(transport http.RoundTripper, cache Cache, lambdaFunctionName strin
 	client.Transport = &httpcache.Transport{
 		Transport: &TransformingTransport{
 			logger:             logger,
+			headClient:         &http.Client{Timeout: 10 * time.Second},
 			lambdaFunctionName: lambdaFunctionName,
 		},
 		Cache:               cache,
@@ -309,6 +310,7 @@ func should304(req *http.Request, responseEtag string) bool {
 type TransformingTransport struct {
 	logger             *zap.SugaredLogger
 	lambdaFunctionName string
+	headClient         *http.Client
 }
 
 // RoundTrip implements the http.RoundTripper interface.
@@ -332,25 +334,48 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 
 	opt := options.ParseOptions(req.URL.Fragment)
 
-	t.logger.Infow("Calling Transform over Lambda",
-		"options fragment", req.URL.Fragment,
-	)
+	var status int
+	var upstreamHeader http.Header
+	var img []byte
 
-	lambdaClient, err := NewLambdaClient(t.lambdaFunctionName)
-	if err != nil {
-		t.logger.Warnw("Could not initialize Lambda client",
+	// Try HTTP HEAD to see if it's completely futile to start the Lambda
+	resp, err := t.headClient.Head(u.String())
+	if err == nil {
+		defer resp.Body.Close()
+
+		if resp.StatusCode >= 400 {
+			t.logger.Warnw("Error status for HTTP HEAD, not invoking Lambda",
+				"StatusCode", resp.StatusCode,
+			)
+			status = resp.StatusCode
+			upstreamHeader = resp.Header
+		} else {
+			// No errors and ok-ish status code. Do transform.
+			lambdaClient, err := NewLambdaClient(t.lambdaFunctionName)
+			if err != nil {
+				t.logger.Warnw("Could not initialize Lambda client",
+					"Error", err.Error(),
+				)
+				return nil, err
+			}
+
+			t.logger.Infow("Calling Transform over Lambda",
+				"options fragment", req.URL.Fragment,
+			)
+
+			status, upstreamHeader, img, err = lambdaClient.TransformWithURL(&u, opt)
+			if err != nil {
+				t.logger.Warnw("Error transforming image",
+					"error", err.Error(),
+					"opt", opt,
+				)
+				img = []byte{}
+			}
+		}
+	} else {
+		t.logger.Warnw("HTTP HEAD returned an error, not invoking Lambda",
 			"Error", err.Error(),
 		)
-		return nil, err
-	}
-
-	status, upstreamHeader, img, err := lambdaClient.TransformWithURL(&u, opt)
-	if err != nil {
-		t.logger.Warnw("Error transforming image",
-			"error", err.Error(),
-			"opt", opt,
-		)
-		img = []byte{}
 	}
 
 	if status <= 0 {
