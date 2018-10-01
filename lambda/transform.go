@@ -12,6 +12,9 @@ import (
 	"github.com/richiefi/imageproxy/transform"
 )
 
+// 6 MB in base64, allocate 16 kB for overhead. --> 4592 kB.
+const lambdaMaxResponse = (((6 * 1024 * 1024) / 4) * 3) - (16 * 1024)
+
 type LambdaExecutor interface {
 	DoTransformWithURL(string, options.Options) (int, http.Header, []byte, error)
 }
@@ -81,6 +84,10 @@ func (ex *lambdaExecutor) DoTransformWithURL(u string, options options.Options) 
 			"Error", err.Error(),
 		)
 		return http.StatusInternalServerError, resp.Header, bs, fmt.Errorf("Error transforming: %s", err.Error())
+	}
+
+	if len(img) > lambdaMaxResponse {
+		return http.StatusInternalServerError, nil, nil, fmt.Errorf("Result image size exceeds Lambda limits with (%d) bytes", len(img)-lambdaMaxResponse)
 	}
 
 	logctx.Infow("Transformed",
