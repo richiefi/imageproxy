@@ -63,7 +63,7 @@ type Proxy struct {
 // NewProxy constructs a new proxy.  The provided http RoundTripper will be
 // used to fetch remote URLs.  If nil is provided, http.DefaultTransport will
 // be used.
-func NewProxy(transport http.RoundTripper, cache Cache, logger *zap.SugaredLogger) *Proxy {
+func NewProxy(transport http.RoundTripper, cache Cache, lambdaFunctionName string, logger *zap.SugaredLogger) *Proxy {
 	logger.Infow("Initializing imageproxy",
 		"buildVersion", buildVersion,
 	)
@@ -83,7 +83,8 @@ func NewProxy(transport http.RoundTripper, cache Cache, logger *zap.SugaredLogge
 	client := new(http.Client)
 	client.Transport = &httpcache.Transport{
 		Transport: &TransformingTransport{
-			logger: logger,
+			logger:             logger,
+			lambdaFunctionName: lambdaFunctionName,
 		},
 		Cache:               cache,
 		MarkCachedResponses: true,
@@ -306,7 +307,8 @@ func should304(req *http.Request, responseEtag string) bool {
 // optionally transforms images using the options specified in the request URL
 // fragment.
 type TransformingTransport struct {
-	logger *zap.SugaredLogger
+	logger             *zap.SugaredLogger
+	lambdaFunctionName string
 }
 
 // RoundTrip implements the http.RoundTripper interface.
@@ -334,8 +336,7 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		"options fragment", req.URL.Fragment,
 	)
 
-	const functionName = "SamisToy"
-	lambdaClient, err := NewLambdaClient(functionName)
+	lambdaClient, err := NewLambdaClient(t.lambdaFunctionName)
 	if err != nil {
 		t.logger.Warnw("Could not initialize Lambda client",
 			"Error", err.Error(),
