@@ -3,6 +3,7 @@ package imageproxy
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,12 +18,13 @@ type LambdaTransformRequest struct {
 }
 
 type LambdaTransformResponse struct {
-	Status int    `json:"s"`
-	Image  []byte `json:"i"`
+	Status         int         `json:"st"`
+	UpstreamHeader http.Header `json:"uh"`
+	Image          []byte      `json:"im"`
 }
 
 type LambdaClient interface {
-	TransformWithURL(*url.URL, options.Options) (int, []byte, error)
+	TransformWithURL(*url.URL, options.Options) (int, http.Header, []byte, error)
 }
 
 type lambdaClient struct {
@@ -41,10 +43,10 @@ func NewLambdaClient(functionName string) (LambdaClient, error) {
 	return &client, nil
 }
 
-func (c *lambdaClient) TransformWithURL(u *url.URL, options options.Options) (int, []byte, error) {
+func (c *lambdaClient) TransformWithURL(u *url.URL, options options.Options) (int, http.Header, []byte, error) {
 	// TransformWithURL will call Lambda synchronously and executes DoTransformWithURL there
 	if u == nil {
-		return 0, nil, fmt.Errorf("URL can't be nil")
+		return 0, nil, nil, fmt.Errorf("URL can't be nil")
 	}
 
 	reqPayload, err := json.Marshal(LambdaTransformRequest{
@@ -52,7 +54,7 @@ func (c *lambdaClient) TransformWithURL(u *url.URL, options options.Options) (in
 		Options:   options,
 	})
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	invokeOutput, err := c.c.Invoke(&lambda.InvokeInput{
@@ -61,13 +63,13 @@ func (c *lambdaClient) TransformWithURL(u *url.URL, options options.Options) (in
 		Payload:        reqPayload,
 	})
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	var resp LambdaTransformResponse
 	err = json.Unmarshal(invokeOutput.Payload, &resp)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
-	return resp.Status, resp.Image, nil
+	return resp.Status, resp.UpstreamHeader, resp.Image, nil
 }
