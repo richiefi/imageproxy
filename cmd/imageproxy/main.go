@@ -62,6 +62,10 @@ func main() {
 
 	logger := buildLogger()
 
+	if os.Getenv("SENTRY_DSN") == "" {
+		logger.Warnw("SENTRY_DSN is not set")
+	}
+
 	if lambdaFunctionName == nil || *lambdaFunctionName == "" {
 		logger.Fatalw("Flag lambdaFunctionName not set. This version will not work without it.")
 	}

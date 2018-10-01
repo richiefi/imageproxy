@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	raven "github.com/getsentry/raven-go"
 	"github.com/gregjones/httpcache"
 	"go.uber.org/zap"
 
@@ -149,6 +150,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 			"error", err.Error(),
 			"req.String()", req.String(),
 		)
+		raven.CaptureError(err, nil)
 		msg := fmt.Sprintf("error fetching remote image: %s", err.Error())
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
