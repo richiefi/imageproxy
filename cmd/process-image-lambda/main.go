@@ -23,9 +23,10 @@ func HandleRequest(ctx context.Context, req imageproxy.LambdaTransformRequest) (
 		return &resp, err
 	}
 
-	suggestedStatus, img, err := lex.DoTransformWithURL(req.URLString, req.Options)
+	suggestedStatus, upstreamHeader, img, err := lex.DoTransformWithURL(req.URLString, req.Options)
 
 	resp.Status = suggestedStatus
+	resp.UpstreamHeader = upstreamHeader
 	if err != nil {
 		return &resp, nil
 	}

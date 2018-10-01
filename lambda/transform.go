@@ -13,7 +13,7 @@ import (
 )
 
 type LambdaExecutor interface {
-	DoTransformWithURL(string, options.Options) (int, []byte, error)
+	DoTransformWithURL(string, options.Options) (int, http.Header, []byte, error)
 }
 
 type lambdaExecutor struct {
@@ -30,7 +30,7 @@ func NewLambdaExecutor(logger *zap.SugaredLogger) (LambdaExecutor, error) {
 	}, nil
 }
 
-func (ex *lambdaExecutor) DoTransformWithURL(u string, options options.Options) (int, []byte, error) {
+func (ex *lambdaExecutor) DoTransformWithURL(u string, options options.Options) (int, http.Header, []byte, error) {
 	logctx := ex.logger.With(
 		"func", "DoTransformWithURL",
 		"u", u,
@@ -44,7 +44,7 @@ func (ex *lambdaExecutor) DoTransformWithURL(u string, options options.Options) 
 		logctx.Warnw("Performing upstream HTTP request failed",
 			"Error", err.Error(),
 		)
-		return http.StatusInternalServerError, nil, err
+		return http.StatusInternalServerError, nil, nil, err
 	}
 	defer resp.Body.Close()
 
@@ -58,7 +58,7 @@ func (ex *lambdaExecutor) DoTransformWithURL(u string, options options.Options) 
 		logctx.Warnw("Got HTTP response with an erroneous response code",
 			"StatusCode", resp.StatusCode,
 		)
-		return resp.StatusCode, nil, fmt.Errorf("HTTP %d from upstream", resp.StatusCode)
+		return resp.StatusCode, resp.Header, nil, fmt.Errorf("HTTP %d from upstream", resp.StatusCode)
 	}
 
 	bs, err := ioutil.ReadAll(resp.Body)
@@ -66,7 +66,7 @@ func (ex *lambdaExecutor) DoTransformWithURL(u string, options options.Options) 
 		logctx.Warnw("Could not read the body",
 			"Error", err.Error(),
 		)
-		return http.StatusInternalServerError, nil, fmt.Errorf("Error reading body: %s", err.Error())
+		return http.StatusInternalServerError, resp.Header, nil, fmt.Errorf("Error reading body: %s", err.Error())
 	}
 
 	logctx.Infow("Read the body",
@@ -80,12 +80,12 @@ func (ex *lambdaExecutor) DoTransformWithURL(u string, options options.Options) 
 		logctx.Warnw("Could not transform",
 			"Error", err.Error(),
 		)
-		return http.StatusInternalServerError, bs, fmt.Errorf("Error transforming: %s", err.Error())
+		return http.StatusInternalServerError, resp.Header, bs, fmt.Errorf("Error transforming: %s", err.Error())
 	}
 
 	logctx.Infow("Transformed",
 		"duration", time.Since(then),
 	)
 
-	return http.StatusOK, img, nil
+	return http.StatusOK, resp.Header, img, nil
 }

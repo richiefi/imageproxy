@@ -344,7 +344,7 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 		return nil, err
 	}
 
-	status, img, err := lambdaClient.TransformWithURL(&u, opt)
+	status, upstreamHeader, img, err := lambdaClient.TransformWithURL(&u, opt)
 	if err != nil {
 		t.logger.Warnw("Error transforming image",
 			"error", err.Error(),
@@ -360,6 +360,11 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	// replay response with transformed image and updated content length
 	buf := new(bytes.Buffer)
 	fmt.Fprintf(buf, "HTTP/1.1 %d\n", status)
+	upstreamHeader.WriteSubset(buf, map[string]bool{
+		"Content-Length": true,
+		// exclude Content-Type header if the format may have changed during transformation
+		"Content-Type": opt.Format != "" || upstreamHeader.Get("Content-Type") == "image/webp" || upstreamHeader.Get("Content-Type") == "image/tiff",
+	})
 	fmt.Fprintf(buf, "Content-Length: %d\n\n", len(img))
 	buf.Write(img)
 
