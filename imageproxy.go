@@ -17,7 +17,6 @@ import (
 	"time"
 
 	raven "github.com/getsentry/raven-go"
-	"github.com/gregjones/httpcache"
 	"go.uber.org/zap"
 
 	"github.com/richiefi/imageproxy/options"
@@ -34,7 +33,6 @@ type Proxy struct {
 	logger *zap.SugaredLogger
 
 	Client *http.Client // client used to fetch remote URLs
-	Cache  Cache        // cache used to cache responses
 
 	// Whitelist specifies a list of remote hosts that images can be
 	// proxied from.  An empty list means all hosts are allowed.
@@ -62,7 +60,7 @@ type Proxy struct {
 // NewProxy constructs a new proxy.  The provided http RoundTripper will be
 // used to fetch remote URLs.  If nil is provided, http.DefaultTransport will
 // be used.
-func NewProxy(transport http.RoundTripper, cache Cache, lambdaFunctionName string, logger *zap.SugaredLogger) *Proxy {
+func NewProxy(transport http.RoundTripper, lambdaFunctionName string, logger *zap.SugaredLogger) *Proxy {
 	logger.Infow("Initializing imageproxy",
 		"buildVersion", buildVersion,
 	)
@@ -70,24 +68,16 @@ func NewProxy(transport http.RoundTripper, cache Cache, lambdaFunctionName strin
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
-	if cache == nil {
-		cache = NopCache
-	}
 
 	proxy := &Proxy{
-		Cache:  cache,
 		logger: logger,
 	}
 
 	client := new(http.Client)
-	client.Transport = &httpcache.Transport{
-		Transport: &TransformingTransport{
-			logger:             logger,
-			headClient:         &http.Client{Timeout: 10 * time.Second},
-			lambdaFunctionName: lambdaFunctionName,
-		},
-		Cache:               cache,
-		MarkCachedResponses: true,
+	client.Transport = &TransformingTransport{
+		logger:             logger,
+		headClient:         &http.Client{Timeout: 10 * time.Second},
+		lambdaFunctionName: lambdaFunctionName,
 	}
 
 	proxy.Client = client
@@ -157,10 +147,8 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	cached := resp.Header.Get(httpcache.XFromCache)
 	p.logger.Debugw("About to respond",
 		"req.String()", req.String(),
-		"from cache", cached == "1",
 	)
 
 	copyHeader(w.Header(), resp.Header, "Cache-Control", "Last-Modified", "Expires", "Link")

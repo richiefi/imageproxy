@@ -93,58 +93,6 @@ whitelist (meaning any remote URL can be proxied).  Test this by navigating to
 <http://localhost:8080/https://octodex.github.com/images/codercat.jpg?size=500> and
 you should see a 500px square coder octocat.
 
-### Cache ###
-
-By default, the imageproxy command does not cache responses, but caching can be
-enabled using the `-cache` flag.  It supports the following values:
-
- - `memory` - uses an in-memory LRU cache.  By default, this is limited to
-   100mb. To customize the size of the cache or the max age for cached items,
-   use the format `memory:size:age` where size is measured in mb and age is a
-   duration.  For example, `memory:200:4h` will create a 200mb cache that will
-   cache items no longer than 4 hours.
- - directory on local disk (e.g. `/tmp/imageproxy`) - will cache images
-   on disk
- - s3 URL (e.g. `s3://region/bucket-name/optional-path-prefix`) - will cache
-   images on Amazon S3.  This requires either an IAM role and instance profile
-   with access to your your bucket or `AWS_ACCESS_KEY_ID` and `AWS_SECRET_KEY`
-   environmental variables be set. (Additional methods of loading credentials
-   are documented in the [aws-sdk-go session
-   package](https://docs.aws.amazon.com/sdk-for-go/api/aws/session/)).
- - gcs URL (e.g. `gcs://bucket-name/optional-path-prefix`) - will cache images
-   on Google Cloud Storage. Authentication is documented in Google's
-   [Application Default Credentials
-   docs](https://cloud.google.com/docs/authentication/production#providing_credentials_to_your_application).
- - azure URL (e.g. `azure://container-name/`) - will cache images on
-   Azure Storage.  This requires `AZURESTORAGE_ACCOUNT_NAME` and
-   `AZURESTORAGE_ACCESS_KEY` environment variables to bet set.
- - redis URL (e.g. `redis://hostname/`) - will cache images on
-   the specified redis host. The full URL syntax is defined by the [redis URI
-   registration](https://www.iana.org/assignments/uri-schemes/prov/redis).
-   Rather than specify password in the URI, use the `REDIS_PASSWORD`
-   environment variable.
-
-For example, to cache files on disk in the `/tmp/imageproxy` directory:
-
-    imageproxy -cache /tmp/imageproxy
-
-Reload the [codercat URL][], and then inspect the contents of
-`/tmp/imageproxy`.  Within the subdirectories, there should be two files, one
-for the original full-size codercat image, and one for the resized 500px
-version.
-
-[codercat URL]: http://localhost:8080/https://octodex.github.com/images/codercat.jpg?size=500
-
-If the `-cache` flag is specified multiple times, multiple caches will be
-created in a [tiered fashion][]. Typically this is used to put a smaller and
-faster in-memory cache in front of a larger but slower on-disk cache.  For
-example, the following will first check an in-memory cache for an image,
-followed by a gcs bucket:
-
-    imageproxy -cache memory -cache gcs://my-bucket/
-
-[tiered fashion]: https://godoc.org/github.com/die-net/lrucache/twotier
-
 ### Referrer Whitelist ###
 
 You can limit images to only be accessible for certain hosts in the HTTP
