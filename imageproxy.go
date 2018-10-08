@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -349,6 +350,9 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 			"error", err.Error(),
 		)
 	}
+
+	// Try to drop extension (like .jpg, .png...)
+	u.Path = strings.TrimSuffix(u.Path, path.Ext(u.Path))
 
 	resp, err := t.CachingClient.Get(u.String())
 	if err != nil {
