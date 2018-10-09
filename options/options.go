@@ -317,9 +317,6 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 	options := defaultOptions
 
 	modeSeen := false
-	fitRequested := false
-	cropRequested := false
-	cropBoxReceived := false
 
 	dpr := 1.0
 
@@ -329,9 +326,9 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 			case "mode":
 				switch value {
 				case "fit":
-					fitRequested = true
+					options.Fit = true
 				case "crop", "smartcrop":
-					cropRequested = true
+					options.SmartCrop = true
 				}
 				modeSeen = true
 			case "flip":
@@ -364,7 +361,6 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 					options.CropWidth, _ = strconv.ParseFloat(cropValues[2], 64)
 					options.CropHeight, _ = strconv.ParseFloat(cropValues[3], 64)
 				}
-				cropBoxReceived = true
 			case "width":
 				options.Width, _ = strconv.ParseFloat(value, 64)
 			case "height":
@@ -381,18 +377,10 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 					dpr = dprCandidate
 				}
 			}
+
 		}
 	}
 
-	if cropRequested && cropBoxReceived {
-		options.SmartCrop = false
-		options.Fit = true
-	} else if cropRequested && !cropBoxReceived {
-		options.SmartCrop = true
-		options.Fit = true // shouldn't matter...
-	} else if fitRequested {
-		options.Fit = true
-	}
 	/*
 		The transformation code doesn't currently do anything if Fit is true and either width or height is 0.
 		However, for libpixel compatibility Fit is supposed to be the default. Ask for Fit if no mode
