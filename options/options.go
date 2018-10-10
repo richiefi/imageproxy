@@ -317,6 +317,7 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 	options := defaultOptions
 
 	modeSeen := false
+	explicitCrop := false
 
 	dpr := 1.0
 
@@ -360,6 +361,7 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 					options.CropY, _ = strconv.ParseFloat(cropValues[1], 64)
 					options.CropWidth, _ = strconv.ParseFloat(cropValues[2], 64)
 					options.CropHeight, _ = strconv.ParseFloat(cropValues[3], 64)
+					explicitCrop = true
 				}
 			case "width":
 				options.Width, _ = strconv.ParseFloat(value, 64)
@@ -388,6 +390,10 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 	*/
 	if !modeSeen && options.Width > 0 && options.Height > 0 {
 		options.Fit = true
+	}
+
+	if explicitCrop {
+		options.SmartCrop = false
 	}
 
 	/*
