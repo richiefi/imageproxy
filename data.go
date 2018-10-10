@@ -22,8 +22,9 @@ func (e URLError) Error() string {
 }
 
 type SourceConfiguration struct {
-	BaseURL        *url.URL
-	DefaultOptions options.Options
+	BaseURL          *url.URL
+	DefaultOptions   options.Options
+	StripPublication bool
 }
 
 func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
@@ -32,8 +33,9 @@ func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
 		a struct without *url.URLs and then parsing the URL.
 	*/
 	var confWithString struct {
-		BaseURL        string          `json:"base_url"`
-		DefaultOptions options.Options `json:"default_options"`
+		BaseURL          string          `json:"base_url"`
+		DefaultOptions   options.Options `json:"default_options"`
+		StripPublication bool            `json:"strip_publication"`
 	}
 	err := json.Unmarshal(bytes, &confWithString)
 	if err != nil {
@@ -46,6 +48,7 @@ func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
 
 	conf.BaseURL = baseURL
 	conf.DefaultOptions = confWithString.DefaultOptions
+	conf.StripPublication = confWithString.StripPublication
 	return nil
 }
 
@@ -152,6 +155,23 @@ func buildFinalAbsoluteURL(prefixesToConfigs map[string]*SourceConfiguration, or
 	if config != nil {
 		urlPrefixWithoutTail := strings.TrimRight(matchingPrefix, "/")
 		strippedPath := path[len(urlPrefixWithoutTail):] // strip the prefix
+
+		if len(strippedPath) < 1 {
+			return nil, fmt.Errorf("nothing left of path (%s) after removing prefix", path)
+		}
+
+		// Publication can be signaled as the first slash-limited part after base URL. Strip it if asked so in conf.
+		if config.StripPublication {
+			// Drop leading slash
+			strippedPath = strings.TrimLeft(strippedPath, "/")
+
+			// Cut at first remaining slash
+			parts := strings.SplitAfterN(strippedPath, "/", 2)
+			if len(parts) < 1 {
+				return nil, fmt.Errorf("nothing left of path (%s) after removing prefix and publication", path)
+			}
+			strippedPath = parts[1]
+		}
 
 		finalURL, err := parseURL(strippedPath)
 
