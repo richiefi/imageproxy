@@ -15,6 +15,8 @@ import (
 	"testing"
 
 	"go.uber.org/zap"
+
+	"github.com/richiefi/imageproxy/options"
 )
 
 func logger() *zap.SugaredLogger {
@@ -106,7 +108,7 @@ func TestAllowed(t *testing.T) {
 
 	tests := []struct {
 		url       string
-		options   Options
+		options   options.Options
 		whitelist []string
 		referrers []string
 		key       []byte
@@ -127,13 +129,13 @@ func TestAllowed(t *testing.T) {
 		{"http://test/image", emptyOptions, nil, whitelist, nil, genRequest(map[string]string{}), false},
 
 		// signature key
-		{"http://test/image", Options{Signature: "NDx5zZHx7QfE8E-ijowRreq6CJJBZjwiRfOVk_mkfQQ="}, nil, nil, key, nil, true},
-		{"http://test/image", Options{Signature: "deadbeef"}, nil, nil, key, nil, false},
+		{"http://test/image", options.Options{Signature: "NDx5zZHx7QfE8E-ijowRreq6CJJBZjwiRfOVk_mkfQQ="}, nil, nil, key, nil, true},
+		{"http://test/image", options.Options{Signature: "deadbeef"}, nil, nil, key, nil, false},
 		{"http://test/image", emptyOptions, nil, nil, key, nil, false},
 
 		// whitelist and signature
 		{"http://good/image", emptyOptions, whitelist, nil, key, nil, true},
-		{"http://bad/image", Options{Signature: "gWivrPhXBbsYEwpmWAKjbJEiAEgZwbXbltg95O2tgNI="}, nil, nil, key, nil, true},
+		{"http://bad/image", options.Options{Signature: "gWivrPhXBbsYEwpmWAKjbJEiAEgZwbXbltg95O2tgNI="}, nil, nil, key, nil, true},
 		{"http://bad/image", emptyOptions, whitelist, nil, key, nil, false},
 	}
 
@@ -190,11 +192,11 @@ func TestValidSignature(t *testing.T) {
 
 	tests := []struct {
 		url     string
-		options Options
+		options options.Options
 		valid   bool
 	}{
-		{"http://test/image", Options{Signature: "NDx5zZHx7QfE8E-ijowRreq6CJJBZjwiRfOVk_mkfQQ="}, true},
-		{"http://test/image", Options{Signature: "NDx5zZHx7QfE8E-ijowRreq6CJJBZjwiRfOVk_mkfQQ"}, true},
+		{"http://test/image", options.Options{Signature: "NDx5zZHx7QfE8E-ijowRreq6CJJBZjwiRfOVk_mkfQQ="}, true},
+		{"http://test/image", options.Options{Signature: "NDx5zZHx7QfE8E-ijowRreq6CJJBZjwiRfOVk_mkfQQ"}, true},
 		{"http://test/image", emptyOptions, false},
 	}
 
