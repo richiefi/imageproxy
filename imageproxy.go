@@ -24,7 +24,7 @@ import (
 	tphttp "github.com/richiefi/imageproxy/third_party/http"
 )
 
-const cacheTags = "imageproxy,imageproxy-1"
+const cacheTags = "imageproxy,imageproxy-2"
 
 // Overridden in prod by linker
 var buildVersion = "dev"
