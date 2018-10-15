@@ -2,13 +2,7 @@ package imageproxy
 
 import (
 	"bufio"
-	"bytes"
-	"errors"
-	"fmt"
-	"image"
-	"image/png"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strings"
@@ -140,8 +134,7 @@ func TestAllowed(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		maxConcurrency := 8
-		p := NewProxy(nil, nil, maxConcurrency, logger())
+		p := NewProxy(nil, "func", logger())
 		p.Whitelist = tt.whitelist
 		p.SignatureKey = tt.key
 		p.Referrers = tt.referrers
@@ -256,114 +249,6 @@ func TestShould304(t *testing.T) {
 
 		if got, want := should304(req, tt.respEtag), tt.is304; got != want {
 			t.Errorf("should304(%q, %q) returned: %v, want %v", tt.req, tt.respEtag, got, want)
-		}
-	}
-}
-
-// testTransport is an http.RoundTripper that returns certained canned
-// responses for particular requests.
-type testTransport struct{}
-
-func (t testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	var raw string
-	var err error
-
-	// The actual transport does this, too.
-	req.URL.RawQuery, err = StripOurOptions(req.URL.RawQuery)
-	if err != nil {
-		return nil, err
-	}
-
-	switch req.URL.Path {
-	case "/ok":
-		raw = "HTTP/1.1 200 OK\n\n"
-	case "/error":
-		return nil, errors.New("http protocol error")
-	case "/nocontent":
-		raw = "HTTP/1.1 204 No Content\n\n"
-	case "/etag":
-		raw = "HTTP/1.1 200 OK\nEtag: \"tag\"\n\n"
-	case "/png":
-		m := image.NewNRGBA(image.Rect(0, 0, 1, 1))
-		img := new(bytes.Buffer)
-		png.Encode(img, m)
-
-		raw = fmt.Sprintf("HTTP/1.1 200 OK\nContent-Length: %d\n\n%s", len(img.Bytes()), img.Bytes())
-	default:
-		raw = "HTTP/1.1 404 Not Found\n\n"
-	}
-
-	buf := bufio.NewReader(bytes.NewBufferString(raw))
-	return http.ReadResponse(buf, req)
-}
-
-func TestProxy_ServeHTTP(t *testing.T) {
-	p := &Proxy{
-		Client: &http.Client{
-			Transport: testTransport{},
-		},
-		Whitelist: []string{"good.test"},
-		logger:    logger(),
-	}
-
-	tests := []struct {
-		url  string // request URL
-		code int    // expected response status code
-	}{
-		{"//foo", http.StatusBadRequest},                            // invalid request URL
-		{"/http://bad.test/", http.StatusForbidden},                 // Disallowed host
-		{"/http://good.test/error", http.StatusInternalServerError}, // HTTP protocol error
-		{"/http://good.test/nocontent", http.StatusNoContent},       // non-OK response
-
-		{"/http://good.test/ok?size=100", http.StatusOK},
-	}
-
-	for _, tt := range tests {
-		req, _ := http.NewRequest("GET", "http://localhost"+tt.url, nil)
-		resp := httptest.NewRecorder()
-		p.ServeHTTP(resp, req)
-
-		if got, want := resp.Code, tt.code; got != want {
-			t.Errorf("ServeHTTP(%v) returned status %d, want %d", req, got, want)
-		}
-	}
-}
-
-func TestTransformingTransport(t *testing.T) {
-	client := new(http.Client)
-	tr := &TransformingTransport{
-		Transport:     testTransport{},
-		CachingClient: client,
-		logger:        logger(),
-	}
-	client.Transport = tr
-
-	tests := []struct {
-		url         string
-		code        int
-		expectError bool
-	}{
-		{"http://good.test/png#1", http.StatusOK, false},
-		{"http://good.test/error#1", http.StatusInternalServerError, true},
-		// TODO: test more than just status code... verify that image
-		// is actually transformed and returned properly and that
-		// non-image responses are returned as-is
-	}
-
-	for _, tt := range tests {
-		req, _ := http.NewRequest("GET", tt.url, nil)
-
-		resp, err := tr.RoundTrip(req)
-		if err != nil {
-			if !tt.expectError {
-				t.Errorf("RoundTrip(%v) returned unexpected error: %v", tt.url, err)
-			}
-			continue
-		} else if tt.expectError {
-			t.Errorf("RoundTrip(%v) did not return expected error", tt.url)
-		}
-		if got, want := resp.StatusCode, tt.code; got != want {
-			t.Errorf("RoundTrip(%v) returned status code %d, want %d", tt.url, got, want)
 		}
 	}
 }
