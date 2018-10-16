@@ -27,6 +27,8 @@ const (
 	optSmartCrop       = "sc"
 )
 
+const optimizeParam = 0x7 // If mozjpeg is used through lambda-imageproc, use flags for max_compression without huffmann without trellis
+
 // Options specifies transformations to be performed on the requested image.
 type Options struct {
 	// Make sure Options never has pointer members. The config parsing depends on that.
@@ -47,7 +49,8 @@ type Options struct {
 	FlipHorizontal bool `json:"flip_horizontal"`
 
 	// Quality of output image
-	Quality int `json:"quality"`
+	Quality  int `json:"quality"`
+	Optimize int `json:"optimize"` // lambda-imageproc's optimization flag
 
 	// HMAC Signature for signed requests.
 	Signature string `json:"signature"`
@@ -200,6 +203,9 @@ func ParseOptions(str string) Options {
 			}
 		}
 	}
+
+	// Always have optimize params
+	options.Optimize = optimizeParam
 
 	return options
 }
@@ -405,6 +411,9 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 	options.CropY *= dpr
 	options.CropWidth *= dpr
 	options.CropHeight *= dpr
+
+	// Always have optimize params
+	options.Optimize = optimizeParam
 
 	return options
 }
