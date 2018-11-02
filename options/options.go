@@ -407,10 +407,6 @@ func ParseFormValues(form url.Values, defaultOptions Options) Options {
 	*/
 	options.Width *= dpr
 	options.Height *= dpr
-	options.CropX *= dpr
-	options.CropY *= dpr
-	options.CropWidth *= dpr
-	options.CropHeight *= dpr
 
 	// Always have optimize params
 	options.Optimize = optimizeParam
