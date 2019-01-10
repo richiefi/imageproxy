@@ -13,7 +13,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 	"time"
 
@@ -318,9 +317,6 @@ func (t *TransformingTransport) RoundTrip(req *http.Request) (*http.Response, er
 	}
 
 	opt := options.ParseOptions(req.URL.Fragment)
-
-	// Try to drop extension (like .jpg, .png...)
-	u.Path = strings.TrimSuffix(u.Path, path.Ext(u.Path))
 
 	var status int
 	var upstreamHeader http.Header

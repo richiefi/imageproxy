@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 
@@ -25,6 +26,7 @@ type SourceConfiguration struct {
 	BaseURL          *url.URL
 	DefaultOptions   options.Options
 	StripPublication bool
+	StripExtension   bool
 }
 
 func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
@@ -36,6 +38,7 @@ func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
 		BaseURL          string          `json:"base_url"`
 		DefaultOptions   options.Options `json:"default_options"`
 		StripPublication bool            `json:"strip_publication"`
+		StripExtension   bool            `json:"strip_extension"`
 	}
 	err := json.Unmarshal(bytes, &confWithString)
 	if err != nil {
@@ -49,6 +52,7 @@ func (conf *SourceConfiguration) UnmarshalJSON(bytes []byte) error {
 	conf.BaseURL = baseURL
 	conf.DefaultOptions = confWithString.DefaultOptions
 	conf.StripPublication = confWithString.StripPublication
+	conf.StripExtension = confWithString.StripExtension
 	return nil
 }
 
@@ -148,16 +152,16 @@ func NewRequest(r *http.Request, prefixesToConfigs map[string]*SourceConfigurati
 }
 
 func buildFinalAbsoluteURL(prefixesToConfigs map[string]*SourceConfiguration, originalURL *url.URL) (*url.URL, error) {
-	path := originalURL.EscapedPath()[1:]
+	uPath := originalURL.EscapedPath()[1:]
 
 	matchingPrefix, config := bestMatchingConfig(prefixesToConfigs, originalURL)
 
 	if config != nil {
 		urlPrefixWithoutTail := strings.TrimRight(matchingPrefix, "/")
-		strippedPath := path[len(urlPrefixWithoutTail):] // strip the prefix
+		strippedPath := uPath[len(urlPrefixWithoutTail):] // strip the prefix
 
 		if len(strippedPath) < 1 {
-			return nil, fmt.Errorf("nothing left of path (%s) after removing prefix", path)
+			return nil, fmt.Errorf("nothing left of path (%s) after removing prefix", uPath)
 		}
 
 		// Publication can be signaled as the first slash-limited part after base URL. Strip it if asked so in conf.
@@ -168,9 +172,17 @@ func buildFinalAbsoluteURL(prefixesToConfigs map[string]*SourceConfiguration, or
 			// Cut at first remaining slash
 			parts := strings.SplitAfterN(strippedPath, "/", 2)
 			if len(parts) < 1 {
-				return nil, fmt.Errorf("nothing left of path (%s) after removing prefix and publication", path)
+				return nil, fmt.Errorf("nothing left of path (%s) after removing prefix and publication", uPath)
 			}
 			strippedPath = parts[1]
+		}
+
+		if config.StripExtension {
+			strippedPath = strings.TrimSuffix(strippedPath, path.Ext(strippedPath))
+
+			if len(strippedPath) < 1 {
+				return nil, fmt.Errorf("nothing left of path (%s) after removing prefix, publication and extension", uPath)
+			}
 		}
 
 		finalURL, err := parseURL(strippedPath)
@@ -183,7 +195,7 @@ func buildFinalAbsoluteURL(prefixesToConfigs map[string]*SourceConfiguration, or
 
 	} else {
 		// Not a single matching prefix was found.
-		return parseURL(path)
+		return parseURL(uPath)
 	}
 }
 
